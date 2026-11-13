@@ -78,3 +78,5 @@
 @keyframes heart-right-in{from{transform:translateX(1.2em) rotate(35deg);opacity:0}to{transform:translateX(.18em) rotate(15deg);opacity:1}}
 @keyframes wordmark-in{to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){.splash-heart span,.splash-wordmark,.splash-actions{animation:none!important;opacity:1!important}.splash{transition:none}}
+
+.onboarding{display:flex;flex-direction:column;gap:12px;margin:24px auto 0;max-width:340px}.onboarding label{font-size:20px;font-weight:700;color:#285746}.onboarding input{width:100%;padding:13px;border:1px solid #b6cbb9;border-radius:12px;font:inherit}.onboarding .muted{font-size:13px;margin:0}.onboarding [role="alert"]{color:#a12b2b;font-size:13px}
