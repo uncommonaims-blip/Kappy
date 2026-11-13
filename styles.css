@@ -52,3 +52,5 @@
 .mini-calendar-preview{display:flex;flex-direction:column;gap:2px;width:42px;height:42px;padding:4px;border:1px solid #a5b7aa;border-radius:5px;background:#fff;box-shadow:0 1px 3px #0002;flex-shrink:0}.mini-calendar-header{height:6px;border-radius:2px;background:#b4c9b8}.mini-calendar-weekdays,.mini-calendar-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px}.mini-calendar-weekdays i{height:2px;background:#a7b6a9;border-radius:1px}.mini-calendar-days i{height:4px;background:#dbe7dd;border-radius:1px}.mini-calendar-days i.mini-calendar-active{background:#2563eb}.calendar-mini{gap:8px}
 
 .calendar-workspace.calendar-collapsed{padding-top:70px}
+
+.auth-bar{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:10px;padding:8px 0 16px;font-size:.85rem}.auth-bar button{border:1px solid #c5bcb0;border-radius:10px;padding:9px 13px;background:#fff;color:#26352c;cursor:pointer}.auth-bar button[hidden]{display:none}.auth-bar button:disabled{opacity:.6}
