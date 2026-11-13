@@ -47,3 +47,8 @@
 .calendar-workspace.calendar-collapsed .calendar-mini{z-index:5;top:0;right:0;transform-origin:top right}
 .calendar-workspace.calendar-collapsed .calendar-day-entries{position:relative;z-index:1;margin-top:0;padding-top:12px}
 .calendar-workspace.calendar-collapsed .calendar-month-view{z-index:0}
+
+/* Miniature of Kappy's actual month grid, rather than a generic glyph. */
+.mini-calendar-preview{display:flex;flex-direction:column;gap:2px;width:42px;height:42px;padding:4px;border:1px solid #a5b7aa;border-radius:5px;background:#fff;box-shadow:0 1px 3px #0002;flex-shrink:0}.mini-calendar-header{height:6px;border-radius:2px;background:#b4c9b8}.mini-calendar-weekdays,.mini-calendar-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px}.mini-calendar-weekdays i{height:2px;background:#a7b6a9;border-radius:1px}.mini-calendar-days i{height:4px;background:#dbe7dd;border-radius:1px}.mini-calendar-days i.mini-calendar-active{background:#2563eb}.calendar-mini{gap:8px}
+
+.calendar-workspace.calendar-collapsed{padding-top:70px}

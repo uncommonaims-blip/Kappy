@@ -25,7 +25,10 @@ try{
   await tapCdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
   await page.waitForFunction(expected=>document.querySelector('[name="startDate"]')?.value===expected,tapDate);
   assert.equal(await page.locator('[name="startDate"]').inputValue(),tapDate,'ordinary touch tap selects a date');
+  assert.equal(await page.locator('.calendar-day-entries').count(),0,'first tap only selects the date');
+  await page.locator('button[data-date="'+tapDate+'"]').click();
   await page.locator('.calendar-day-entries').waitFor();
+  assert.equal(await page.locator('.mini-calendar-preview .mini-calendar-days i').count(),21,'mini calendar resembles a month grid');
   await page.locator('[data-daystep="1"]').click();
   await page.locator('[data-daystep="-1"]').click();
   assert.equal(await page.locator('[name="startDate"]').inputValue(),tapDate,'day navigation returns to selected day');
@@ -57,7 +60,7 @@ try{
   await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
   await page.waitForFunction(expected=>document.querySelector('[name="endDate"]')?.value===expected,end);
   assert.equal(await page.locator('[name="endDate"]').inputValue(),end,'real touch end-date tap must finish range');
-  await page.locator('[data-expandcalendar="1"]').click();
+  assert.equal(await page.locator('.calendar-day-entries').count(),0,'range end selection keeps calendar expanded');
   assert.equal(await page.locator('.calendar-range-prompt').count(),0,'calendar prompt clears after end date selection');
   assert.equal(await page.locator('.range-anchor').count(),0,'blue pulse stops after range completion');
   // Switching modes must not erase partially written notes or time fields.
@@ -92,8 +95,9 @@ try{
   }
   // Regression: the first click on the held date may be synthetic, but a later
   // deliberate click must be allowed to make a single-day range.
-  await page.locator('button[data-date="'+start+'"]').click();
-  await page.locator('[data-expandcalendar="1"]').click();
+  // The submitted request leaves start selected. A tap on that active day
+  // intentionally opens entries, so restore the month before holding it.
+  if(await page.locator('[data-expandcalendar="1"]').count())await page.locator('[data-expandcalendar="1"]').click();
   await page.waitForTimeout(550);
   const same=page.locator('button[data-date="'+start+'"]');
   const sameBox=await same.boundingBox();
@@ -103,7 +107,6 @@ try{
   await page.waitForTimeout(550);
   await same.click();
   assert.equal(await page.locator('[name="endDate"]').inputValue(),start,'same-day end date must remain clickable');
-  await page.locator('[data-expandcalendar="1"]').click();
   // Regression: range selection must continue across month navigation.
   const currentDates=await page.locator('button[data-date]').evaluateAll(nodes=>nodes.map(n=>n.dataset.date));
   const last=currentDates.at(-1);
@@ -117,7 +120,6 @@ try{
   await page.locator('button[data-date="'+nextMonthFirst+'"]').click();
   assert.equal(await page.locator('[name="startDate"]').inputValue(),last);
   assert.equal(await page.locator('[name="endDate"]').inputValue(),nextMonthFirst);
-  await page.locator('[data-expandcalendar="1"]').click();
   assert.equal(await page.locator('button[data-date="'+nextMonthFirst+'"]').evaluate(el=>el.classList.contains('range-end')),true,'next-month end cap is highlighted');
   await page.locator('[data-month="-1"]').click();
   assert.equal(await page.locator('button[data-date="'+last+'"]').evaluate(el=>el.classList.contains('range-start')),true,'previous-month start cap remains highlighted');
@@ -125,7 +127,6 @@ try{
   const nextDates=await page.locator('button[data-date]').evaluateAll(nodes=>nodes.map(n=>n.dataset.date));
   const nextLater=nextDates[4];
   await page.locator('button[data-date="'+nextLater+'"]').click();
-  await page.locator('[data-expandcalendar="1"]').click();
   await page.locator('[data-endmode="1"]').click();
   await page.locator('button[data-date="'+nextDates[8]+'"]').click();
   assert.ok(await page.locator('.day.in-range').count()>0,'intermediate dates have connected highlight');
