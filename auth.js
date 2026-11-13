@@ -14,16 +14,35 @@ const splash=document.getElementById("splash"),app=document.getElementById("kapp
 const splashStatus=document.getElementById("splash-status"),splashGoogle=document.getElementById("splash-google"),splashEnter=document.getElementById("splash-enter");
 const status=document.getElementById("auth-status"),login=document.getElementById("google-login"),logout=document.getElementById("google-logout");
 let entered=false,entryPending=false;
+
+const onboarding=document.getElementById("onboarding-form");
+const displayName=document.getElementById("display-name");
+const onboardingError=document.getElementById("onboarding-error");
+onboarding.addEventListener("submit",async e=>{
+ e.preventDefault();
+ const name=displayName.value.trim().replace(/\s+/g," ");
+ if(!name||name.length>60){onboardingError.hidden=false;onboardingError.textContent="Please enter a name (up to 60 characters).";return}
+ const submit=onboarding.querySelector('button[type="submit"]');submit.disabled=true;
+ const {data,error}=await supabase.auth.updateUser({data:{kappy_display_name:name}});
+ submit.disabled=false;
+ if(error){onboardingError.hidden=false;onboardingError.textContent="Could not save your name: "+error.message;return}
+ onboardingError.hidden=true;show({user:data.user});
+});
+
 function enter(){if(entered)return;entered=true;app.hidden=false;splash.classList.add("dismissed");setTimeout(()=>{splash.hidden=true},550)}
 splashEnter.addEventListener("click",enter);
 remember.addEventListener("change",()=>{const existing=storage.getItem(authKey);localStorage.setItem(preferenceKey,String(remember.checked));if(existing)storage.setItem(authKey,existing)});
 function show(session){
  const user=session?.user;
+ const chosen=user?.user_metadata?.kappy_display_name?.trim();
+ window.kappySetAccountName?.(chosen||"");
+ onboarding.hidden=!user||!!chosen;
+ if(user&&!chosen){displayName.value=displayName.value||user.user_metadata?.full_name?.split(" ")[0]||"";}
  login.hidden=!!user;logout.hidden=!user;
  status.textContent=user?"Signed in: "+(user.email||"Google account"):"Not signed in";
- splashStatus.textContent=user?"Welcome back"+(user.user_metadata?.name?", "+user.user_metadata.name.split(" ")[0]:"")+"!":"Welcome to Kappy";
- splashGoogle.hidden=!!user;splashEnter.hidden=!user;
- if(user&&!entered&&!entryPending){entryPending=true;setTimeout(()=>{entryPending=false;if(splashEnter.hidden===false)enter()},1900)}
+ splashStatus.textContent=user?(chosen?"Welcome back, "+chosen+"!":"Let’s get acquainted"):"Welcome to Kappy";
+ splashGoogle.hidden=!!user;splashEnter.hidden=!user||!chosen;
+ if(user&&chosen&&!entered&&!entryPending){entryPending=true;setTimeout(()=>{entryPending=false;if(splashEnter.hidden===false)enter()},1900)}
  if(!user){entered=false;entryPending=false;app.hidden=true;splash.hidden=false;splash.classList.remove("dismissed")}
 }
 async function startLogin(){
