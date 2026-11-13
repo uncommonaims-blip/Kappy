@@ -1,0 +1,1 @@
+{"name":"kappy-prototype","private":true,"version":"0.1.0","description":"Static, local-only Kappy care-circle design prototype","scripts":{"start":"python3 -m http.server 4173","test":"node --test tests/*.test.mjs"},"engines":{"node":">=18"}}
