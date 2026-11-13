@@ -14,6 +14,17 @@ try{
   const dates=await page.locator('button[data-date]').evaluateAll(nodes=>nodes.map(n=>n.dataset.date));
   assert.ok(dates.length>=28);
   const start=dates[5],end=dates[8];
+  // Exercise a genuine touch TAP first, not Playwright's synthetic mouse click.
+  // A touchstart listener must never swallow ordinary date selection.
+  const tapDate=dates[2],tapNode=page.locator('button[data-date="'+tapDate+'"]');
+  const tapBox=await tapNode.boundingBox();
+  assert.ok(tapBox,'tap date must be visible');
+  const tapX=Math.round(tapBox.x+tapBox.width/2),tapY=Math.round(tapBox.y+tapBox.height/2);
+  const tapCdp=await page.context().newCDPSession(page);
+  await tapCdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:tapX,y:tapY}]});
+  await tapCdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  await page.waitForFunction(expected=>document.querySelector('[name="startDate"]')?.value===expected,tapDate);
+  assert.equal(await page.locator('[name="startDate"]').inputValue(),tapDate,'ordinary touch tap selects a date');
   // Start with an unselected date. This was previously impossible.
   const held=page.locator('button[data-date="'+start+'"]');
   const box=await held.boundingBox();
