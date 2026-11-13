@@ -34,3 +34,5 @@
 .calendar-grid > .day:nth-child(7n+1)::before{left:0}
 
 .calendar-quick-actions{padding:12px 0;border-top:1px solid #ddd}.calendar-quick-label{font-weight:700;margin:0 0 10px}.calendar-quick-buttons{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.calendar-quick-buttons button{min-width:0;padding:12px 4px;font-size:.9rem;white-space:normal}.calendar-quick-buttons button:focus-visible{outline:3px solid #27816d}
+
+.day-top{display:flex;align-items:flex-start;justify-content:space-between;width:100%;gap:2px}.day-caregivers{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:2px;max-width:75%}.caregiver-dot{display:inline-block;flex:0 0 auto;width:8px;height:8px;border-radius:50%;border:1px solid rgba(0,0,0,.12)}.caregiver-legend{display:flex;align-items:center;flex-wrap:wrap;gap:7px 13px;margin:10px 0 12px;font-size:12px}.caregiver-legend-title{font-weight:700}.caregiver-legend-item{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}.caregiver-legend-item .caregiver-dot{width:10px;height:10px}@media(max-width:500px){.day-caregivers{gap:1px}.caregiver-dot{width:7px;height:7px}.caregiver-legend{gap:6px 10px}}
