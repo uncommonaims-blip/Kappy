@@ -47,6 +47,13 @@ try{
   assert.equal(await page.locator('#requestForm [name="startTime"]').inputValue(),'09:30');
   assert.equal(await page.locator('#requestForm [name="person"]').inputValue(),'Morgan');
   assert.equal(await page.locator('#requestForm button[type="submit"]').innerText(),'Record available');
+  // Calendar navigation also re-renders the form: no unsent details may vanish.
+  await page.locator('[data-month="1"]').click();
+  assert.equal(await page.locator('#requestForm [name="note"]').inputValue(),'Available for the morning shift','month navigation preserves draft');
+  assert.equal(await page.locator('#requestForm [name="startTime"]').inputValue(),'09:30');
+  assert.equal(await page.locator('#requestForm [name="person"]').inputValue(),'Morgan');
+  await page.locator('[data-month="-1"]').click();
+  assert.equal(await page.locator('#requestForm [name="note"]').inputValue(),'Available for the morning shift');
   await page.locator('[data-requestmode="unavailable"]').click();
   assert.equal(await page.locator('#requestForm [name="note"]').inputValue(),'Available for the morning shift');
   assert.equal(await page.locator('#requestForm [name="endDate"]').inputValue(),end);
