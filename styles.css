@@ -4,3 +4,13 @@
 .version{display:inline-block;background:#285746;color:#fff;border-radius:10px;padding:9px 13px;font-size:15px;font-weight:800;letter-spacing:.02em;white-space:nowrap}
 
 .day[data-date]{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+
+/* Active long-press range is visibly distinct from ordinary green selection. */
+.day.range-anchor{background:#dbeafe;border:2px solid #2563eb;color:#173b8c;animation:kappy-range-pulse 1.35s ease-in-out infinite}
+.day.range-anchor .number{color:#173b8c}
+.day.range-anchor .shiftpill{background:#bfdbfe;color:#173b8c}
+@keyframes kappy-range-pulse{0%,100%{box-shadow:0 0 0 0 rgba(37,99,235,.38)}50%{box-shadow:0 0 0 5px rgba(37,99,235,.08)}}
+.calendar-feedback{display:flex;justify-content:flex-end;align-items:center;min-height:34px;margin-top:8px;text-align:right}
+.calendar-range-prompt{display:inline-flex;align-items:center;border-radius:9px;background:#dbeafe;border:1px solid #60a5fa;color:#173b8c;padding:7px 10px;font-size:12px;font-weight:800}
+.calendar-hint{color:#6e7e74;font-size:11px}
+@media(prefers-reduced-motion:reduce){.day.range-anchor{animation:none;box-shadow:0 0 0 3px rgba(37,99,235,.22)}}
