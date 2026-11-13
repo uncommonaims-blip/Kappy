@@ -22,7 +22,7 @@ document.addEventListener("click",e=>{let b=e.target.closest("button");if(!b)ret
 // day content must not cancel the gesture on mobile browsers.
 // A hold chooses its own start date. Do not suppress the NEXT date click:
 // touchstart.preventDefault already prevents the synthetic click on Android.
-let holdTimer=null,holdStart=null,holdKind=null,suppressHeldDate=null;
+let holdTimer=null,holdStart=null,holdKind=null,suppressHeldDate=null,suppressHeldUntil=0;
 function cancelHold(){clearTimeout(holdTimer);holdTimer=null;holdStart=null;holdKind=null}
 function armHold(day,x,y,kind){
   cancelHold();
@@ -35,6 +35,7 @@ function armHold(day,x,y,kind){
     state.choosingEnd=true;state.endDate=null;
     // Only suppress a possible synthetic click on the held day itself.
     suppressHeldDate=heldDate;
+    suppressHeldUntil=Date.now()+450;
     render();
   },550);
   return true;
@@ -57,7 +58,7 @@ document.addEventListener("contextmenu",e=>{if(e.target.closest("button[data-dat
 document.addEventListener("click",e=>{
   const day=e.target.closest("button[data-date]");
   if(!day)return;
-  if(suppressHeldDate===day.dataset.date&&state.choosingEnd){
+  if(suppressHeldDate===day.dataset.date&&state.choosingEnd&&Date.now()<suppressHeldUntil){
     suppressHeldDate=null;e.preventDefault();e.stopImmediatePropagation();
   }else{
     suppressHeldDate=null;
