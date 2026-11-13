@@ -95,7 +95,9 @@ try{
   }
   // Regression: the first click on the held date may be synthetic, but a later
   // deliberate click must be allowed to make a single-day range.
-  await page.locator('button[data-date="'+start+'"]').click();
+  // The submitted request leaves start selected. A tap on that active day
+  // intentionally opens entries, so restore the month before holding it.
+  if(await page.locator('[data-expandcalendar="1"]').count())await page.locator('[data-expandcalendar="1"]').click();
   await page.waitForTimeout(550);
   const same=page.locator('button[data-date="'+start+'"]');
   const sameBox=await same.boundingBox();
