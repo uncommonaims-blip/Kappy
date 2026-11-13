@@ -36,8 +36,16 @@ try{
   await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
   await page.getByText('Range mode ON').waitFor();
   assert.equal(await page.locator('[name="startDate"]').inputValue(),start);
-  await page.locator('button[data-date="'+end+'"]').click();
-  assert.equal(await page.locator('[name="endDate"]').inputValue(),end,'end date tap must not be swallowed after hold');
+  // Finish with a real touchscreen tap rather than Playwright's mouse click.
+  // This exercises the exact Android gesture sequence reported broken.
+  const endNode=page.locator('button[data-date="'+end+'"]');
+  const endBox=await endNode.boundingBox();
+  assert.ok(endBox,'ending date must be visible');
+  const endX=Math.round(endBox.x+endBox.width/2),endY=Math.round(endBox.y+endBox.height/2);
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:endX,y:endY}]});
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  await page.waitForFunction(expected=>document.querySelector('[name="endDate"]')?.value===expected,end);
+  assert.equal(await page.locator('[name="endDate"]').inputValue(),end,'real touch end-date tap must finish range');
   // Switching modes must not erase partially written notes or time fields.
   await page.locator('#requestForm [name="note"]').fill('Available for the morning shift');
   await page.locator('#requestForm [name="startTime"]').fill('09:30');
