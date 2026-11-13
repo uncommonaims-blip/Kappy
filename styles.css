@@ -41,3 +41,9 @@
 
 /* Calendar-to-entry transition keeps the month visible as a recognizable miniature. */
 .calendar-workspace{position:relative;min-height:160px}.calendar-month-view{transform-origin:top right;transition:transform .28s ease,opacity .22s ease;will-change:transform}.calendar-workspace.calendar-collapsed .calendar-month-view{position:absolute;top:0;right:0;width:100%;transform:translate(0,0) scale(.13);opacity:0;pointer-events:none}.calendar-mini{position:absolute;right:0;top:0;display:flex;align-items:center;gap:5px;border:1px solid #b6d2c1;border-radius:10px;background:#e7efe6;color:#285746;padding:7px 9px;min-height:44px;font-weight:700;cursor:pointer;animation:mini-calendar-in .28s ease both}.mini-calendar-icon{font-size:24px;line-height:1}.calendar-workspace.calendar-collapsed .calendar-day-entries{margin-top:0;padding-top:55px;animation:entries-in .24s ease both}.entry-day-nav{display:grid;grid-template-columns:48px minmax(0,1fr) 48px;align-items:center;gap:8px;margin-bottom:10px;text-align:center}.entry-day-nav button{min-height:46px;font-size:26px;padding:4px}.entry-day-nav strong{font-size:14px}@keyframes mini-calendar-in{from{opacity:0;transform:translate(-60px,40px) scale(1.8)}to{opacity:1;transform:translate(0,0) scale(1)}}@keyframes entries-in{from{opacity:.2;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}@media(prefers-reduced-motion:reduce){.calendar-month-view,.calendar-mini,.calendar-day-entries{transition:none!important;animation:none!important}}
+
+/* Keep the miniature calendar above the entry surface and within its own tap target. */
+.calendar-workspace.calendar-collapsed{isolation:isolate;padding-top:54px}
+.calendar-workspace.calendar-collapsed .calendar-mini{z-index:5;top:0;right:0;transform-origin:top right}
+.calendar-workspace.calendar-collapsed .calendar-day-entries{position:relative;z-index:1;margin-top:0;padding-top:12px}
+.calendar-workspace.calendar-collapsed .calendar-month-view{z-index:0}
