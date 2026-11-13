@@ -1,7 +1,7 @@
 /* Fictional, in-memory concept only. No server, accounts, or persistent storage. */
 const $=s=>document.querySelector(s);
 let accountName="";
-window.kappySetAccountName=name=>{accountName=String(name||"").trim();render()};
+if(typeof window!=="undefined")window.kappySetAccountName=name=>{accountName=String(name||"").trim();render()};
 const safe=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const now=new Date(),initialDate=new Date(now.getFullYear(),now.getMonth(),now.getDate());
 const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
