@@ -108,6 +108,17 @@ try{
   await page.locator('button[data-date="'+nextMonthFirst+'"]').click();
   assert.equal(await page.locator('[name="startDate"]').inputValue(),last);
   assert.equal(await page.locator('[name="endDate"]').inputValue(),nextMonthFirst);
+  assert.equal(await page.locator('button[data-date="'+nextMonthFirst+'"]').evaluate(el=>el.classList.contains('range-end')),true,'next-month end cap is highlighted');
+  await page.locator('[data-month="-1"]').click();
+  assert.equal(await page.locator('button[data-date="'+last+'"]').evaluate(el=>el.classList.contains('range-start')),true,'previous-month start cap remains highlighted');
+  await page.locator('[data-month="1"]').click();
+  const nextDates=await page.locator('button[data-date]').evaluateAll(nodes=>nodes.map(n=>n.dataset.date));
+  const nextLater=nextDates[4];
+  await page.locator('button[data-date="'+nextLater+'"]').click();
+  await page.locator('[data-endmode="1"]').click();
+  await page.locator('button[data-date="'+nextDates[8]+'"]').click();
+  assert.ok(await page.locator('.day.in-range').count()>0,'intermediate dates have connected highlight');
+  assert.equal(await page.locator('.day.in-range').first().evaluate(el=>getComputedStyle(el,'::before').content),'""','range bridge pseudo-element is rendered');
   assert.deepEqual(errors,[]);
   console.log('PASS: mobile hold on any date, range mode, end-date tap, mode switching preserves form details, form submit, navigation, no page errors');
 }finally{await browser.close()}
