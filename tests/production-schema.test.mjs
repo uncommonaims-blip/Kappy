@@ -4,14 +4,14 @@ import { readFileSync } from 'node:fs';
 const sql = readFileSync(new URL('../supabase/schema.sql', import.meta.url), 'utf8');
 test('all care tables have RLS enabled', () => {
   for (const name of ['teams','team_members','team_invitations','calendar_entries']) {
-    assert.match(sql, new RegExp('alter table public\.' + name + ' enable row level security;', 'i'));
+    assert.match(sql, new RegExp(String.raw`alter table public\.` + name + ' enable row level security;', 'i'));
   }
 });
 test('membership and admin helpers are in a non-exposed schema', () => {
   assert.match(sql, /create schema if not exists private;/i);
   for (const name of ['is_team_member','is_team_admin']) {
-    assert.match(sql, new RegExp('create function private\.' + name + '\(', 'i'));
-    assert.doesNotMatch(sql, new RegExp('create function public\.' + name + '\(', 'i'));
+    assert.match(sql, new RegExp(String.raw`create function private\.` + name + String.raw`\(`, 'i'));
+    assert.doesNotMatch(sql, new RegExp(String.raw`create function public\.` + name + String.raw`\(`, 'i'));
   }
 });
 test('calendar writes require membership and ownership', () => {
