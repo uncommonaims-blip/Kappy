@@ -34,6 +34,11 @@ try{
   await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
   await page.waitForTimeout(700);
   await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  await page.locator('.calendar-feedback .calendar-range-prompt').waitFor();
+  assert.match(await page.locator('.calendar-range-prompt').innerText(),/Tap an end date/);
+  assert.ok(await page.locator('button[data-date="'+start+'"]').evaluate(el=>el.classList.contains('range-anchor')),'held date has active blue anchor class');
+  assert.equal(await page.locator('button[data-date="'+start+'"]').evaluate(el=>getComputedStyle(el).borderTopColor),'rgb(37, 99, 235)','range anchor is visibly blue');
+  assert.notEqual(await page.locator('button[data-date="'+start+'"]').evaluate(el=>getComputedStyle(el).animationName),'none','range anchor pulses');
   await page.getByText('Range mode ON').waitFor();
   assert.equal(await page.locator('[name="startDate"]').inputValue(),start);
   // Finish with a real touchscreen tap rather than Playwright's mouse click.
@@ -46,6 +51,8 @@ try{
   await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
   await page.waitForFunction(expected=>document.querySelector('[name="endDate"]')?.value===expected,end);
   assert.equal(await page.locator('[name="endDate"]').inputValue(),end,'real touch end-date tap must finish range');
+  assert.equal(await page.locator('.calendar-range-prompt').count(),0,'calendar prompt clears after end date selection');
+  assert.equal(await page.locator('.range-anchor').count(),0,'blue pulse stops after range completion');
   // Switching modes must not erase partially written notes or time fields.
   await page.locator('#requestForm [name="note"]').fill('Available for the morning shift');
   await page.locator('#requestForm [name="startTime"]').fill('09:30');
@@ -101,6 +108,17 @@ try{
   await page.locator('button[data-date="'+nextMonthFirst+'"]').click();
   assert.equal(await page.locator('[name="startDate"]').inputValue(),last);
   assert.equal(await page.locator('[name="endDate"]').inputValue(),nextMonthFirst);
+  assert.equal(await page.locator('button[data-date="'+nextMonthFirst+'"]').evaluate(el=>el.classList.contains('range-end')),true,'next-month end cap is highlighted');
+  await page.locator('[data-month="-1"]').click();
+  assert.equal(await page.locator('button[data-date="'+last+'"]').evaluate(el=>el.classList.contains('range-start')),true,'previous-month start cap remains highlighted');
+  await page.locator('[data-month="1"]').click();
+  const nextDates=await page.locator('button[data-date]').evaluateAll(nodes=>nodes.map(n=>n.dataset.date));
+  const nextLater=nextDates[4];
+  await page.locator('button[data-date="'+nextLater+'"]').click();
+  await page.locator('[data-endmode="1"]').click();
+  await page.locator('button[data-date="'+nextDates[8]+'"]').click();
+  assert.ok(await page.locator('.day.in-range').count()>0,'intermediate dates have connected highlight');
+  assert.equal(await page.locator('.day.in-range').first().evaluate(el=>getComputedStyle(el,'::before').content),'""','range bridge pseudo-element is rendered');
   assert.deepEqual(errors,[]);
   console.log('PASS: mobile hold on any date, range mode, end-date tap, mode switching preserves form details, form submit, navigation, no page errors');
 }finally{await browser.close()}
