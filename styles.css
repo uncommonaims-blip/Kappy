@@ -78,3 +78,5 @@
 @keyframes heart-right-in{from{transform:translateX(1.2em) rotate(35deg);opacity:0}to{transform:translateX(.18em) rotate(15deg);opacity:1}}
 @keyframes wordmark-in{to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){.splash-heart span,.splash-wordmark,.splash-actions{animation:none!important;opacity:1!important}.splash{transition:none}}
+
+.trend-visual svg{width:100%;height:auto;display:block;max-height:260px}.chart-legend{display:flex;gap:18px;font-size:12px;font-weight:700}.chart-sys{color:#285746}.chart-dia{color:#b87540}.trend-visual .muted,.mood-history+.muted{font-size:12px;margin:8px 0 0}.mood-history{display:flex;align-items:center;gap:5px;justify-content:space-between;overflow:auto;padding:10px 0}.mood-point{flex:1;min-width:24px;text-align:center}.mood-point span{display:block;font-size:clamp(19px,3vw,30px)}.mood-point small{display:block;font-size:10px}
