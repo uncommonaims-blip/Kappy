@@ -34,6 +34,11 @@ try{
   await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
   await page.waitForTimeout(700);
   await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  await page.locator('.calendar-feedback .calendar-range-prompt').waitFor();
+  assert.match(await page.locator('.calendar-range-prompt').innerText(),/Tap an end date/);
+  assert.ok(await page.locator('button[data-date="'+start+'"]').evaluate(el=>el.classList.contains('range-anchor')),'held date has active blue anchor class');
+  assert.equal(await page.locator('button[data-date="'+start+'"]').evaluate(el=>getComputedStyle(el).borderTopColor),'rgb(37, 99, 235)','range anchor is visibly blue');
+  assert.notEqual(await page.locator('button[data-date="'+start+'"]').evaluate(el=>getComputedStyle(el).animationName),'none','range anchor pulses');
   await page.getByText('Range mode ON').waitFor();
   assert.equal(await page.locator('[name="startDate"]').inputValue(),start);
   // Finish with a real touchscreen tap rather than Playwright's mouse click.
@@ -46,6 +51,8 @@ try{
   await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
   await page.waitForFunction(expected=>document.querySelector('[name="endDate"]')?.value===expected,end);
   assert.equal(await page.locator('[name="endDate"]').inputValue(),end,'real touch end-date tap must finish range');
+  assert.equal(await page.locator('.calendar-range-prompt').count(),0,'calendar prompt clears after end date selection');
+  assert.equal(await page.locator('.range-anchor').count(),0,'blue pulse stops after range completion');
   // Switching modes must not erase partially written notes or time fields.
   await page.locator('#requestForm [name="note"]').fill('Available for the morning shift');
   await page.locator('#requestForm [name="startTime"]').fill('09:30');
