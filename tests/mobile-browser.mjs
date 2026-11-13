@@ -52,8 +52,12 @@ try{
   assert.equal(await page.locator('#requestForm [name="note"]').inputValue(),'Available for the morning shift','month navigation preserves draft');
   assert.equal(await page.locator('#requestForm [name="startTime"]').inputValue(),'09:30');
   assert.equal(await page.locator('#requestForm [name="person"]').inputValue(),'Morgan');
+  assert.equal(await page.locator('#requestForm [name="startDate"]').inputValue(),start,'browsing months must not change selected start');
+  assert.equal(await page.locator('#requestForm [name="endDate"]').inputValue(),end,'browsing months must not clear range');
   await page.locator('[data-month="-1"]').click();
   assert.equal(await page.locator('#requestForm [name="note"]').inputValue(),'Available for the morning shift');
+  assert.equal(await page.locator('#requestForm [name="startDate"]').inputValue(),start);
+  assert.equal(await page.locator('#requestForm [name="endDate"]').inputValue(),end);
   await page.locator('[data-requestmode="unavailable"]').click();
   assert.equal(await page.locator('#requestForm [name="note"]').inputValue(),'Available for the morning shift');
   assert.equal(await page.locator('#requestForm [name="endDate"]').inputValue(),end);
