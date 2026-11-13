@@ -14,3 +14,21 @@
 .calendar-range-prompt{display:inline-flex;align-items:center;border-radius:9px;background:#dbeafe;border:1px solid #60a5fa;color:#173b8c;padding:7px 10px;font-size:12px;font-weight:800}
 .calendar-hint{color:#6e7e74;font-size:11px}
 @media(prefers-reduced-motion:reduce){.day.range-anchor{animation:none;box-shadow:0 0 0 3px rgba(37,99,235,.22)}}
+
+/* Connected completed range: fill the grid gutter between consecutive days.
+   The same date comparisons work when viewing either month of a cross-month range. */
+.day.in-range,.day.range-start,.day.range-end{position:relative;overflow:visible}
+.day.in-range{background:#d9eee0;border-color:#8bbba0;border-radius:0}
+.day.range-start,.day.range-end{background:#e0f1e5;border-color:#397b59}
+.day.in-range::before,.day.range-start::after,.day.range-end::before{
+  content:"";position:absolute;top:50%;height:18px;transform:translateY(-50%);
+  background:#d9eee0;pointer-events:none;z-index:0
+}
+.day.in-range::before{left:-3px;right:-3px}
+.day.range-start::after{left:50%;right:-3px}
+.day.range-end::before{left:-3px;right:50%}
+.day.range-start.range-end::before,.day.range-start.range-end::after{display:none}
+.day.in-range > *,.day.range-start > *,.day.range-end > *{position:relative;z-index:1}
+/* Do not draw a connector into the next calendar row. */
+.calendar-grid > .day:nth-child(7n+7)::after{right:0}
+.calendar-grid > .day:nth-child(7n+1)::before{left:0}
