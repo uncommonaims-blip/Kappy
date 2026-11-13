@@ -15,5 +15,11 @@ jobs:
         run: node --check script.js
       - name: Run prototype tests
         run: node --test tests/*.test.mjs
+      - name: Install Chromium browser test dependencies
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Run mobile Chromium interaction test
+        run: node tests/mobile-browser.mjs
       - name: Verify version header
-        run: grep -q 'Kappy v0.4.4' index.html
+        run: grep -q 'Kappy v0.4.6' index.html
