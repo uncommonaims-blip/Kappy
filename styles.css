@@ -2,3 +2,5 @@
 .day.in-range{background:#edf5ed;border-color:#a8c8b0}.day.in-range .number{color:#285746}
 
 .version{display:inline-block;background:#285746;color:#fff;border-radius:10px;padding:9px 13px;font-size:15px;font-weight:800;letter-spacing:.02em;white-space:nowrap}
+
+.day[data-date]{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
