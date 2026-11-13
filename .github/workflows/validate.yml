@@ -16,4 +16,4 @@ jobs:
       - name: Run prototype tests
         run: node --test tests/*.test.mjs
       - name: Verify version header
-        run: grep -q 'Kappy v0.4.2' index.html
+        run: grep -q 'Kappy v0.4.3' index.html
