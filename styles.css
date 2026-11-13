@@ -54,3 +54,27 @@
 .calendar-workspace.calendar-collapsed{padding-top:70px}
 
 .auth-bar{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:10px;padding:8px 0 16px;font-size:.85rem}.auth-bar button{border:1px solid #c5bcb0;border-radius:10px;padding:9px 13px;background:#fff;color:#26352c;cursor:pointer}.auth-bar button[hidden]{display:none}.auth-bar button:disabled{opacity:.6}
+
+
+[hidden]{display:none!important}
+.heartmark{display:inline-block;position:relative;width:1.1em;height:1em;vertical-align:-.1em;color:#285746}
+.heartmark span{position:absolute;top:0;left:0;font-size:.92em;line-height:1;display:block}
+.heartmark .heart-left{transform:translateX(-.18em) rotate(-15deg);opacity:.95}
+.heartmark .heart-right{transform:translateX(.18em) rotate(15deg);color:#759982;mix-blend-mode:multiply}
+.brand-heart{font-size:1.12em;margin-right:.16em}
+.splash{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;background:#f7f5f0;padding:24px;transition:opacity .5s ease,transform .5s ease}
+.splash.dismissed{opacity:0;transform:translateY(-12px);pointer-events:none}
+.splash-inner{text-align:center;width:min(100%,420px)}
+.splash-heart{font-size:112px;height:1em;width:1.3em}
+.splash-heart .heart-left{animation:heart-left-in 1s cubic-bezier(.2,.8,.2,1) both}
+.splash-heart .heart-right{animation:heart-right-in 1s cubic-bezier(.2,.8,.2,1) both}
+.splash-wordmark{font-size:clamp(46px,12vw,74px);font-weight:800;letter-spacing:-.06em;color:#285746;opacity:0;animation:wordmark-in .65s ease 1.05s forwards}
+.splash-actions{margin-top:28px;opacity:0;animation:wordmark-in .6s ease 1.8s forwards;display:flex;align-items:center;flex-direction:column;gap:16px}
+.splash-actions p{margin:0;color:#66776d}
+.splash-actions .button{width:min(100%,290px);padding:14px 20px}
+.remember{display:flex;align-items:center;gap:9px;color:#52675a;font-size:14px}
+.remember input{width:18px;height:18px;accent-color:#285746}
+@keyframes heart-left-in{from{transform:translateX(-1.2em) rotate(-35deg);opacity:0}to{transform:translateX(-.18em) rotate(-15deg);opacity:.95}}
+@keyframes heart-right-in{from{transform:translateX(1.2em) rotate(35deg);opacity:0}to{transform:translateX(.18em) rotate(15deg);opacity:1}}
+@keyframes wordmark-in{to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.splash-heart span,.splash-wordmark,.splash-actions{animation:none!important;opacity:1!important}.splash{transition:none}}

@@ -9,7 +9,21 @@ const errors=[];
 page.on('pageerror',e=>errors.push(e.message));
 try{
   await page.goto(pathToFileURL(resolve('index.html')).href);
-  await page.locator('[data-date]').first().waitFor();
+  // The splash intentionally gates the app until Google authentication.
+  // Validate its visible login affordance without attempting a live Google login in CI.
+  await page.locator('#splash').waitFor({state:'visible'});
+  assert.equal(await page.locator('#kappy-app').isVisible(),false,'calendar is gated by splash');
+  assert.equal(await page.locator('#stay-signed-in').isChecked(),true,'remember-me defaults on');
+  await page.locator('.splash-wordmark').waitFor({state:'visible'});
+  await page.waitForFunction(()=>getComputedStyle(document.querySelector('.splash-wordmark')).opacity==='1');
+  assert.ok(await page.locator('.splash-heart .heart-left').count()===1,'first animated heart exists');
+  assert.ok(await page.locator('.splash-heart .heart-right').count()===1,'second animated heart exists');
+  // The existing calendar suite tests touch behavior, not third-party OAuth.
+  // Expose the demo UI ONLY inside this Playwright browser context; production
+  // still requires a valid Supabase session to reveal the app.
+  await page.locator('#kappy-app').evaluate(el=>{el.hidden=false});
+  await page.locator('#splash').evaluate(el=>{el.hidden=true});
+  await page.locator('[data-date]').first().waitFor({state:'visible'});
   assert.equal(errors.length,0,'startup JavaScript errors');
   const dates=await page.locator('button[data-date]').evaluateAll(nodes=>nodes.map(n=>n.dataset.date));
   assert.ok(dates.length>=28);
