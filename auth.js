@@ -1,4 +1,5 @@
-// Google OAuth sign-in for the Kappy prototype. No care data is sent to Supabase yet.
+import { mountLiveWorkspace } from "./live-workspace.js";
+// Google OAuth and private-beta live workspace.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.0";
 
 const preferenceKey="kappy-stay-signed-in", authKey="kappy-auth-session";
@@ -14,6 +15,8 @@ const splash=document.getElementById("splash"),app=document.getElementById("kapp
 const splashStatus=document.getElementById("splash-status"),splashGoogle=document.getElementById("splash-google"),splashEnter=document.getElementById("splash-enter");
 const status=document.getElementById("auth-status"),login=document.getElementById("google-login"),logout=document.getElementById("google-logout");
 let entered=false,entryPending=false;
+let mountedUserId=null;
+const liveHost=document.getElementById("live-workspace");
 
 const onboarding=document.getElementById("onboarding-form");
 const displayName=document.getElementById("display-name");
@@ -36,6 +39,7 @@ function show(session){
  const user=session?.user;
  const chosen=user?.user_metadata?.kappy_display_name?.trim();
  window.kappySetAccountName?.(chosen||"");
+ if(user?.id!==mountedUserId){mountedUserId=user?.id||null;mountLiveWorkspace(supabase,liveHost,user)}
  onboarding.hidden=!user||!!chosen;
  if(user&&!chosen){displayName.value=displayName.value||user.user_metadata?.full_name?.split(" ")[0]||"";}
  login.hidden=!!user;logout.hidden=!user;
