@@ -12,7 +12,10 @@ jobs:
         with:
           node-version: '22'
       - name: Check JavaScript syntax
-        run: node --check script.js
+        run: |
+          node --check script.js
+          node --check auth.js
+          node --check live-workspace.js
       - name: Run prototype tests
         run: node --test tests/*.test.mjs
       - name: Install Chromium browser test dependencies
@@ -22,4 +25,4 @@ jobs:
       - name: Run mobile Chromium interaction test
         run: node tests/mobile-browser.mjs
       - name: Verify version header
-        run: grep -q 'Kappy v0.5.4' index.html
+        run: grep -q 'Kappy v0.6.0-beta' index.html
