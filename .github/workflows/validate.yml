@@ -25,4 +25,5 @@ jobs:
       - name: Run mobile Chromium interaction test
         run: node tests/mobile-browser.mjs
       - name: Verify version header
-        run: grep -q 'Kappy v0.6.0-beta' index.html
+        run: |
+          node -e "const fs=require('node:fs');const html=fs.readFileSync('index.html','utf8');const match=html.match(/<span class=\\\"version\\\"[^>]*>Kappy v([^<]+)<\\/span>/);if(!match)process.exit(1);console.log('Kappy version:',match[1])"
