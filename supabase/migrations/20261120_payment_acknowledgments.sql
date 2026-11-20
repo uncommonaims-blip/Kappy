@@ -28,7 +28,8 @@ with check(worker_id=(select auth.uid()) and received_at is not null and kappy_p
 create function kappy_private.lock_payment_receipt() returns trigger language plpgsql set search_path='' as $$
 begin
  if old.received_at is not null then raise exception 'Receipt already acknowledged'; end if;
- if new.received_at is distinct from transaction_timestamp() then raise exception 'Receipt timestamp must be server generated'; end if;
+ if new.received_at is null then raise exception 'Receipt confirmation required'; end if;
+ new.received_at := transaction_timestamp();
  return new;
 end$$;
 create trigger lock_payment_receipt before update on public.kappy_payments for each row execute function kappy_private.lock_payment_receipt();
