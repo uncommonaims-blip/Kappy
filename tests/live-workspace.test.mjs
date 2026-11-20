@@ -20,7 +20,10 @@ test('live writes use the authenticated user identity and team',()=>{
 });
 test('beta clearly separates synchronized records from demo panels',()=>{
  assert.match(html,/id="live-workspace"/);
- assert.match(html,/Demo panels below are not synchronized/);
+ assert.match(html,/Live team workspace\. Use synthetic data only until beta security approval/);
+ assert.match(html,/\.tabs,#panel\{display:none!important\}/);
+ assert.match(workspace,/\['calendar','Calendar'\]/);
+ assert.match(workspace,/\['payroll','Payroll'\]/);
 });
 test('workspace never uses service role or innerHTML for server content',()=>{
  assert.doesNotMatch(workspace,/service_role|serviceRole|innerHTML/);
