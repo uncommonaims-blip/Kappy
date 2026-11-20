@@ -1,3 +1,4 @@
+import {mountTeamNotifications} from './team-notifications.js';
 import { mountWorkRecords } from "./work-records.js";
 // Private beta workspace: all reads and writes use the signed-in Supabase session and RLS.
 export function mountLiveWorkspace(client, host, user) {
@@ -43,6 +44,7 @@ export function mountLiveWorkspace(client, host, user) {
       const wellbeing=section('Test check-ins',checks,x=>x.observed_on+' · '+(x.steps??'No steps')+' steps · '+(x.mood??'No mood'));
       const wf=el('form');const observed=el('input');observed.type='date';observed.required=true;observed.setAttribute('aria-label','Observation date');const steps=el('input');steps.type='number';steps.min=0;steps.max=200000;steps.placeholder='Steps';steps.setAttribute('aria-label','Steps');const save=el('button','Save test check-in');save.type='submit';wf.append(observed,steps,save);wellbeing.append(wf);
       wf.addEventListener('submit',async e=>{e.preventDefault();save.disabled=true;try{await call(client.from('kappy_wellbeing').insert({team_id:teamId,author_id:user.id,observed_on:observed.value,steps:steps.value===''?null:Number(steps.value)}));await refresh()}catch(err){root.append(message('Check-in not saved: '+err.message))}finally{save.disabled=false}});
+      await mountTeamNotifications(client,root,user,teamId);
       const workHost=el('div');root.append(workHost);await mountWorkRecords(client,workHost,user,teamId);
       const reload=el('button','Refresh shared records');reload.type='button';reload.addEventListener('click',refresh);root.append(reload);
     } catch(err){root.append(message('Shared workspace unavailable: '+err.message))}
