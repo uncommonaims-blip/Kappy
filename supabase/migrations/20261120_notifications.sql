@@ -42,7 +42,7 @@ end $$;
 create trigger notify_timesheet_submission after insert on public.kappy_weekly_submissions for each row execute function kappy_private.notify_timesheet_submission();
 create function kappy_private.notify_schedule_decision() returns trigger language plpgsql security definer set search_path='' as $$
 begin
- if old.kind='request' and new.status is distinct from old.status and new.status in ('approved','rejected') then
+ if old.kind='request' and new.status is distinct from old.status and new.status in ('approved','declined') then
  insert into public.kappy_notifications(team_id,recipient_id,kind,title,body)
  values(new.team_id,new.created_by,'schedule_decision','Schedule request '||new.status,coalesce(new.title,'Schedule request'));
  end if;
