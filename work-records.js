@@ -1,4 +1,5 @@
 import {mountMonthlyStatements} from './monthly-statements.js';
+import {mountPayments} from './payments.js';
 // Work Records beta. Never trust UI-only permissions: Supabase RLS is authoritative.
 export async function mountWorkRecords(client,host,user,teamId){
  host.replaceChildren();
@@ -52,6 +53,7 @@ export async function mountWorkRecords(client,host,user,teamId){
  const uploadLabel=el('label','Receipt photo (optional, JPEG/PNG/WebP, max 5 MB) '),upload=el('input');upload.type='file';upload.accept='image/jpeg,image/png,image/webp';upload.id='kappy-receipt-file';upload.setAttribute('aria-label','Receipt photo');uploadLabel.append(upload);section.querySelectorAll('form')[1].insertBefore(uploadLabel,section.querySelectorAll('form')[1].lastChild);
  const submit=el('button',submissions.some(x=>x.worker_id===user.id)?'Week submitted':'Submit this week');submit.disabled=submissions.some(x=>x.worker_id===user.id);submit.addEventListener('click',async()=>{try{await query(client.from('kappy_weekly_submissions').insert({team_id:teamId,worker_id:user.id,week_start:weekStart}));await mountWorkRecords(client,host,user,teamId)}catch(err){status.textContent=err.message}});section.append(submit);
  }
+ await mountPayments(client,section,user,teamId,weekStart,members,submissions,manager,()=>mountWorkRecords(client,host,user,teamId));
  await mountMonthlyStatements(client,section,user,teamId,members,manager);
  const archive=el('section');archive.append(el('h3','Expense and receipt archive'));
  for(const e of expenses){const line=el('p',e.spent_on+' · '+e.category+' · '+money(Number(e.amount))+' · '+(e.description||'No description')+' ');
