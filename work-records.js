@@ -30,6 +30,7 @@ export async function mountWorkRecords(client,host,user,teamId){
  coverage+=c;extra+=a;labor+=l;reimb+=g+other;
  const tr=el('tr');for(const v of [m.user_id===user.id?'You':m.user_id.slice(0,8),c.toFixed(2),a.toFixed(2),money(l),money(g),money(l+g+other),submissions.some(x=>x.worker_id===m.user_id)?'Yes':'No'])tr.append(el('td',v));table.append(tr)}
  section.append(table);
+ if(manager){const pending=rows.filter(m=>m.role!=='payroll_manager'&&!submissions.some(x=>x.worker_id===m.user_id));section.append(el('p','Timesheet status: '+(rows.length-pending.length)+' submitted / '+rows.length+' team members · '+pending.length+' missing'));if(pending.length){const missing=el('p','Awaiting: '+pending.map(m=>m.user_id===user.id?'You':m.user_id.slice(0,8)).join(', '));section.append(missing)}}
  section.append(el('p','Coverage: '+coverage.toFixed(2)+' / 168 hours · '+(168-coverage).toFixed(2)+' hours remaining'));
  if(coverage>168)section.append(el('p','Review: coverage exceeds 168 hours. Check overlapping shifts.'));
  section.append(el('p','Additional labor: '+extra.toFixed(2)+' hours · Labor '+money(labor)+' · Reimbursements '+money(reimb)+' · Grand total '+money(labor+reimb)));
