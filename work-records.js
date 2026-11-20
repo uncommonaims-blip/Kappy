@@ -1,3 +1,4 @@
+import {mountMonthlyStatements} from './monthly-statements.js';
 import {mountPayments} from './payments.js';
 // Work Records beta. Never trust UI-only permissions: Supabase RLS is authoritative.
 export async function mountWorkRecords(client,host,user,teamId){
@@ -53,6 +54,7 @@ export async function mountWorkRecords(client,host,user,teamId){
  const submit=el('button',submissions.some(x=>x.worker_id===user.id)?'Week submitted':'Submit this week');submit.disabled=submissions.some(x=>x.worker_id===user.id);submit.addEventListener('click',async()=>{try{await query(client.from('kappy_weekly_submissions').insert({team_id:teamId,worker_id:user.id,week_start:weekStart}));await mountWorkRecords(client,host,user,teamId)}catch(err){status.textContent=err.message}});section.append(submit);
  }
  await mountPayments(client,section,user,teamId,weekStart,members,submissions,manager,()=>mountWorkRecords(client,host,user,teamId));
+ await mountMonthlyStatements(client,section,user,teamId,members,manager);
  const archive=el('section');archive.append(el('h3','Expense and receipt archive'));
  for(const e of expenses){const line=el('p',e.spent_on+' · '+e.category+' · '+money(Number(e.amount))+' · '+(e.description||'No description')+' ');
  if(e.receipt_path){const btn=el('button','View receipt');btn.type='button';btn.addEventListener('click',async()=>{btn.disabled=true;try{const {data,error}=await client.storage.from('kappy-receipts').createSignedUrl(e.receipt_path,60);if(error)throw error;window.open(data.signedUrl,'_blank','noopener,noreferrer')}catch(err){status.textContent='Receipt unavailable: '+err.message}finally{btn.disabled=false}});line.append(btn)}archive.append(line)}
