@@ -21,6 +21,9 @@ try{
   // The existing calendar suite tests touch behavior, not third-party OAuth.
   // Expose the demo UI ONLY inside this Playwright browser context; production
   // still requires a valid Supabase session to reveal the app.
+  // Production hides the legacy demo; enable it only in this isolated browser test
+  // so the existing touch-gesture regression suite still exercises its controls.
+  await page.addStyleTag({content:'.tabs,#panel{display:block!important}'});
   await page.locator('#kappy-app').evaluate(el=>{el.hidden=false});
   await page.locator('#splash').evaluate(el=>{el.hidden=true});
   await page.locator('[data-date]').first().waitFor({state:'visible'});

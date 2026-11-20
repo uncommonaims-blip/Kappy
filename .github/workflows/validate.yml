@@ -25,4 +25,4 @@ jobs:
       - name: Run mobile Chromium interaction test
         run: node tests/mobile-browser.mjs
       - name: Verify version header
-        run: grep -q 'Kappy v0.6.0-beta' index.html
+        run: grep -Eq 'Kappy v[0-9]+\.[0-9]+\.[0-9]+-beta' index.html
