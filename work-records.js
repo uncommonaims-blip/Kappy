@@ -19,10 +19,10 @@ export async function mountWorkRecords(client,host,user,teamId){
  query(client.from('kappy_weekly_submissions').select('worker_id').eq('team_id',teamId).eq('week_start',weekStart))
  ]);
  const role=members.find(m=>m.user_id===user.id)?.role;
- const manager=role==='admin'||role==='payroll_manager';
+ const Care Steward=role==='admin'||role==='payroll_Care Steward';
  const money=n=>'$'+n.toFixed(2);
  section.append(el('p','Week of '+weekStart+' · 168 coverage hours available'));
- const rows=manager?members:members.filter(m=>m.user_id===user.id);
+ const rows=Care Steward?members:members.filter(m=>m.user_id===user.id);
  const table=el('table'),head=el('tr');for(const h of ['Worker','Coverage','Extra','Labor','Groceries','Total','Submitted'])head.append(el('th',h));table.append(head);
  let coverage=0,extra=0,labor=0,reimb=0;
  for(const m of rows){const w=work.filter(x=>x.worker_id===m.user_id),e=expenses.filter(x=>x.worker_id===m.user_id);
@@ -30,11 +30,11 @@ export async function mountWorkRecords(client,host,user,teamId){
  coverage+=c;extra+=a;labor+=l;reimb+=g+other;
  const tr=el('tr');for(const v of [m.user_id===user.id?'You':m.user_id.slice(0,8),c.toFixed(2),a.toFixed(2),money(l),money(g),money(l+g+other),submissions.some(x=>x.worker_id===m.user_id)?'Yes':'No'])tr.append(el('td',v));table.append(tr)}
  section.append(table);
- if(manager){const pending=rows.filter(m=>m.role!=='payroll_manager'&&!submissions.some(x=>x.worker_id===m.user_id));section.append(el('p','Timesheet status: '+(rows.length-pending.length)+' submitted / '+rows.length+' team members · '+pending.length+' missing'));if(pending.length){const missing=el('p','Awaiting: '+pending.map(m=>m.user_id===user.id?'You':m.user_id.slice(0,8)).join(', '));section.append(missing)}}
+ if(Care Steward){const pending=rows.filter(m=>m.role!=='payroll_Care Steward'&&!submissions.some(x=>x.worker_id===m.user_id));section.append(el('p','Timesheet status: '+(rows.length-pending.length)+' submitted / '+rows.length+' team members · '+pending.length+' missing'));if(pending.length){const missing=el('p','Awaiting: '+pending.map(m=>m.user_id===user.id?'You':m.user_id.slice(0,8)).join(', '));section.append(missing)}}
  section.append(el('p','Coverage: '+coverage.toFixed(2)+' / 168 hours · '+(168-coverage).toFixed(2)+' hours remaining'));
  if(coverage>168)section.append(el('p','Review: coverage exceeds 168 hours. Check overlapping shifts.'));
  section.append(el('p','Additional labor: '+extra.toFixed(2)+' hours · Labor '+money(labor)+' · Reimbursements '+money(reimb)+' · Grand total '+money(labor+reimb)));
- if(role!=='payroll_manager'){
+ if(role!=='payroll_Care Steward'){
  form('Work hours',[['work_date','Work date','date',true],['hours','Hours','number',true],['hourly_rate','Hourly rate ($)','number',true],['notes','Notes','text',false]],async v=>query(client.from('kappy_work_entries').insert({...v,hours:Number(v.hours),hourly_rate:Number(v.hourly_rate),category:document.getElementById('kappy-work-type')?.value||'coverage',team_id:teamId,worker_id:user.id})));
  const type=el('select');type.id='kappy-work-type';type.setAttribute('aria-label','Work type');for(const t of ['coverage','groceries','errand','other']){const o=el('option',t);o.value=t;type.append(o)}section.querySelector('form').prepend(type);
  form('Expense',[['spent_on','Date','date',true],['amount','Amount ($)','number',true],['description','Description','text',true]],async v=>{
@@ -54,8 +54,8 @@ export async function mountWorkRecords(client,host,user,teamId){
  const uploadLabel=el('label','Receipt photo (optional, JPEG/PNG/WebP, max 5 MB) '),upload=el('input');upload.type='file';upload.accept='image/jpeg,image/png,image/webp';upload.id='kappy-receipt-file';upload.setAttribute('aria-label','Receipt photo');uploadLabel.append(upload);section.querySelectorAll('form')[1].insertBefore(uploadLabel,section.querySelectorAll('form')[1].lastChild);
  const submit=el('button',submissions.some(x=>x.worker_id===user.id)?'Week submitted':'Submit this week');submit.disabled=submissions.some(x=>x.worker_id===user.id);submit.addEventListener('click',async()=>{try{await query(client.from('kappy_weekly_submissions').insert({team_id:teamId,worker_id:user.id,week_start:weekStart}));await mountWorkRecords(client,host,user,teamId)}catch(err){status.textContent=err.message}});section.append(submit);
  }
- await mountPayments(client,section,user,teamId,weekStart,members,submissions,manager,()=>mountWorkRecords(client,host,user,teamId));
- await mountMonthlyStatements(client,section,user,teamId,members,manager);
+ await mountPayments(client,section,user,teamId,weekStart,members,submissions,Care Steward,()=>mountWorkRecords(client,host,user,teamId));
+ await mountMonthlyStatements(client,section,user,teamId,members,Care Steward);
  const archive=el('section');archive.append(el('h3','Expense and receipt archive'));
  for(const e of expenses){const line=el('p',e.spent_on+' · '+e.category+' · '+money(Number(e.amount))+' · '+(e.description||'No description')+' ');
  if(e.receipt_path){const btn=el('button','View receipt');btn.type='button';btn.addEventListener('click',async()=>{btn.disabled=true;try{const {data,error}=await client.storage.from('kappy-receipts').createSignedUrl(e.receipt_path,60);if(error)throw error;window.open(data.signedUrl,'_blank','noopener,noreferrer')}catch(err){status.textContent='Receipt unavailable: '+err.message}finally{btn.disabled=false}});line.append(btn)}archive.append(line)}
