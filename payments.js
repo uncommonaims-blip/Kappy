@@ -1,0 +1,13 @@
+export async function mountPayments(client,section,user,teamId,weekStart,members,submissions,manager,refresh){
+ const el=(tag,t)=>{const n=document.createElement(tag);if(t!==undefined)n.textContent=t;return n};
+ const box=el('section');box.append(el('h3','Check payments and receipt confirmations'));section.append(box);
+ const {data:payments,error}=await client.from('kappy_payments').select('id,worker_id,amount,check_number,written_on,delivery_note,received_at').eq('team_id',teamId).eq('week_start',weekStart);
+ if(error){box.append(el('p','Payments unavailable: '+error.message));return}
+ for(const p of payments){const row=el('p',(p.worker_id===user.id?'You':p.worker_id.slice(0,8))+' · $'+Number(p.amount).toFixed(2)+' · Check #'+p.check_number+' · '+p.written_on+' · '+p.delivery_note+' · '+(p.received_at?'Received '+new Date(p.received_at).toLocaleString():'Awaiting receipt'));box.append(row);
+ if(p.worker_id===user.id&&!p.received_at){const b=el('button','Confirm check received');b.onclick=async()=>{if(!confirm('Confirm physical receipt of check #'+p.check_number+'?'))return;b.disabled=true;const {error}=await client.from('kappy_payments').update({received_at:new Date().toISOString()}).eq('id',p.id).is('received_at',null);if(error){box.append(el('p',error.message));b.disabled=false}else refresh()};row.append(b)}}
+ if(!payments.length)box.append(el('p','No checks recorded this week'));
+ if(!manager)return;
+ const form=el('form');form.append(el('h4','Record written check'));const inputs={};
+ for(const [key,label,type] of [['worker_id','Caregiver','select'],['amount','Amount ($)','number'],['check_number','Check number','text'],['written_on','Date written','date'],['delivery_note','Where left or who received it','text']]){const wrap=el('label',label+' '),i=el(type==='select'?'select':'input');if(type==='select'){for(const m of members.filter(m=>submissions.some(s=>s.worker_id===m.user_id))){const o=el('option',m.user_id===user.id?'You':m.user_id.slice(0,8));o.value=m.user_id;i.append(o)}}else{i.type=type;if(type==='date')i.value=new Date().toISOString().slice(0,10);if(type==='number'){i.min='0.01';i.step='0.01'}}i.required=true;wrap.append(i);form.append(wrap);inputs[key]=i}
+ const save=el('button','Record check written');save.type='submit';form.append(save);form.onsubmit=async e=>{e.preventDefault();save.disabled=true;const record={team_id:teamId,week_start:weekStart,recorded_by:user.id,...Object.fromEntries(Object.entries(inputs).map(([k,v])=>[k,v.value]))};record.amount=Number(record.amount);const {error}=await client.from('kappy_payments').insert(record);if(error){box.append(el('p',error.message));save.disabled=false}else refresh()};box.append(form);
+}
