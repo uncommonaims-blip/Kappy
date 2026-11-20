@@ -42,7 +42,7 @@ export function mountLiveWorkspace(client, host, user) {
         call(client.from('kappy_messages').select('id,body,channel,created_at').eq('team_id',teamId).order('created_at',{ascending:false}).limit(30)),
         call(client.from('kappy_wellbeing').select('id,observed_on,steps,mood').eq('team_id',teamId).order('observed_on',{ascending:false}).limit(15))
       ]);
-      const section=(heading,items,formatter)=>{const s=el('section');s.append(el('h3',heading));const ul=el('ul');for(const x of items)ul.append(el('li',formatter(x)));if(!items.length)ul.append(el('li','No records yet'));s.append(ul);panes[heading==='Shared calendar'?'calendar':heading==='Team messages'?'messages':'wellbeing'].append(s);return s};
+      const section=(heading,items,formatter)=>{const s=el('section');s.append(el('h3',heading));const ul=el('ul');for(const x of items)ul.append(el('li',formatter(x)));if(!items.length)ul.append(el('li','No records yet'));s.append(ul);panes[heading==='Upcoming care-circle events'?'calendar':heading==='Team messages'?'messages':'wellbeing'].append(s);return s};
       const calendar=section('Upcoming care-circle events',entries,x=>x.starts_at.slice(0,10)+' · '+x.kind+' · '+(x.title||'Untitled')+' ('+x.status+')');
       // Real monthly calendar. Day dots and details are drawn from persisted team events.
       const monthCard=el('section');monthCard.className='care-month-card';panes.calendar.prepend(monthCard);
