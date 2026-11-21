@@ -180,3 +180,19 @@
 #live-workspace .kappy-live-nav{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;align-items:stretch!important;justify-content:stretch!important;gap:0!important;overflow:visible!important;max-height:none!important}
 #live-workspace .kappy-live-nav button{width:100%!important;min-width:0!important;max-width:none!important;flex:initial!important;height:50px!important;max-height:50px!important;min-height:50px!important;white-space:nowrap!important;font-size:clamp(9px,2.45vw,13px)!important;letter-spacing:-.03em;padding:6px 1px!important;border-radius:9px!important}
 @media(max-width:680px){#live-workspace .kappy-live-nav{position:fixed!important;bottom:0!important;left:0!important;right:0!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important;padding:5px 3px max(5px,env(safe-area-inset-bottom))!important;max-height:none!important;overflow:visible!important}#kappy-app>.top{margin-bottom:8px}#kappy-app>.top .brand{font-size:26px}#kappy-app>.top .auth-bar #google-logout{font-size:12px;padding:8px 10px}}
+
+
+/* Friendly, tap-first caregiver check-in */
+#live-workspace .kappy-checkin-form{background:#fff;border:1px solid #e0e9df;border-radius:20px;padding:18px;margin-bottom:16px;gap:14px}
+#live-workspace .kappy-checkin-form h3{text-align:center;font-size:22px;margin:2px 0 4px}
+#live-workspace .kappy-mood-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+#live-workspace .kappy-mood-option{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:10px;min-width:0;min-height:128px;border:2px solid #dbe8dc;border-radius:18px;background:#f9fcf8;color:#294437;padding:10px 4px}
+#live-workspace .kappy-mood-option span{font-size:43px;line-height:1.1}
+#live-workspace .kappy-mood-option strong{font-size:16px}
+#live-workspace .kappy-mood-option.selected{border-color:#285746;background:#e2f1e6;box-shadow:inset 0 0 0 1px #285746}
+#live-workspace .kappy-mood-option:focus-visible{outline:3px solid #285746;outline-offset:2px}
+#live-workspace .kappy-checkin-more{border:1px solid #e0e8df;border-radius:12px;padding:12px}
+#live-workspace .kappy-checkin-more summary{cursor:pointer;font-weight:650}
+#live-workspace .kappy-checkin-more label{margin-top:12px}
+#live-workspace .kappy-checkin-save{min-height:54px;font-size:18px}
+@media(max-width:390px){#live-workspace .kappy-mood-option{min-height:108px}#live-workspace .kappy-mood-option span{font-size:36px}#live-workspace .kappy-mood-option strong{font-size:14px}}
