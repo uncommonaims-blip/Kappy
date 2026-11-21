@@ -97,9 +97,41 @@ export function mountLiveWorkspace(client, host, user) {
       const ch=el('select');ch.setAttribute('aria-label','Message channel');for(const value of ['general','nutrition','sleep']){const o=el('option',value);o.value=value;o.selected=value===channel;ch.append(o)}ch.addEventListener('change',()=>{channel=ch.value;refresh()});messages.prepend(ch);
       const mf=el('form');const body=el('textarea');body.required=true;body.maxLength=5000;body.placeholder='Message your team';body.setAttribute('aria-label','Message');const send=el('button','Send message');send.type='submit';mf.append(body,send);messages.append(mf);
       mf.addEventListener('submit',async e=>{e.preventDefault();send.disabled=true;try{await call(client.from('kappy_messages').insert({team_id:teamId,author_id:user.id,channel,body:body.value.trim()}));await refresh()}catch(err){root.append(message('Message not sent: '+err.message))}finally{send.disabled=false}});
-      const wellbeing=section('Test check-ins',checks,x=>x.observed_on+' · '+(x.steps??'No steps')+' steps · '+(x.mood??'No mood'));
-      const wf=el('form');const observed=el('input');observed.type='date';observed.required=true;observed.setAttribute('aria-label','Observation date');const steps=el('input');steps.type='number';steps.min=0;steps.max=200000;steps.placeholder='Steps';steps.setAttribute('aria-label','Steps');const save=el('button','Save test check-in');save.type='submit';wf.append(observed,steps,save);const checkDetails=el('details');checkDetails.className='care-action-details';checkDetails.append(el('summary','+ New check-in'),wf);wellbeing.append(checkDetails);
-      wf.addEventListener('submit',async e=>{e.preventDefault();save.disabled=true;try{await call(client.from('kappy_wellbeing').insert({team_id:teamId,author_id:user.id,observed_on:observed.value,steps:steps.value===''?null:Number(steps.value)}));await refresh()}catch(err){root.append(message('Check-in not saved: '+err.message))}finally{save.disabled=false}});
+      const wellbeing=section('Recent check-ins',checks,x=>x.observed_on+' · '+(x.mood||'Mood not recorded')+(x.steps==null?'':' · '+x.steps+' steps'));
+      const wf=el('form');wf.className='kappy-checkin-form';
+      const preferenceKey='kappy-checkin-icons:'+user.id;
+      let iconStyle='emoji';try{iconStyle=localStorage.getItem(preferenceKey)==='classic'?'classic':'emoji'}catch{}
+      const displaySettings=el('div');displaySettings.className='kappy-icon-settings';
+      const displayLabel=el('span','Icon style');const styleButtons=el('div');styleButtons.className='kappy-icon-style-options';styleButtons.setAttribute('role','group');styleButtons.setAttribute('aria-label','Check-in icon style');
+      const moodOptions=el('div');moodOptions.className='kappy-mood-options';moodOptions.setAttribute('role','group');moodOptions.setAttribute('aria-label','Choose how Sylvie is feeling');
+      const moodItems=[['😊','Good','good','sun'],['😐','Okay','okay','minus'],['😟','Not great','not great','cloud-rain']];
+      let chosenMood='';
+      const renderMood=()=>{
+        moodOptions.replaceChildren();
+        for(const [emoji,label,value,symbol] of moodItems){
+          const option=el('button');option.type='button';option.className='kappy-mood-option';option.setAttribute('aria-pressed',String(chosenMood===value));option.classList.toggle('selected',chosenMood===value);
+          const graphic=el('span',iconStyle==='emoji'?emoji:({sun:'☀',minus:'−','cloud-rain':'☁'}[symbol]));graphic.className=iconStyle==='emoji'?'kappy-emoji-symbol':'kappy-classic-symbol';
+          option.append(graphic,el('strong',label));
+          option.addEventListener('click',()=>{chosenMood=value;renderMood()});
+          moodOptions.append(option);
+        }
+      };
+      for(const [value,label] of [['emoji','😊 Emoji'],['classic','Kappy Classic']]){
+        const button=el('button',label);button.type='button';button.className='kappy-style-choice';
+        button.setAttribute('aria-pressed',String(iconStyle===value));
+        button.addEventListener('click',()=>{iconStyle=value;try{localStorage.setItem(preferenceKey,value)}catch{};for(const b of styleButtons.querySelectorAll('button'))b.setAttribute('aria-pressed',String(b===button));renderMood()});
+        styleButtons.append(button);
+      }
+      displaySettings.append(displayLabel,styleButtons);wf.append(displaySettings);
+      const prompt=el('h3','How is Sylvie feeling?');wf.append(prompt);
+      renderMood();
+      wf.append(moodOptions);
+      const dateLabel=el('label','Date');const observed=el('input');observed.type='date';observed.required=true;observed.value=new Date().toLocaleDateString('en-CA');dateLabel.append(observed);
+      const stepsLabel=el('label','Steps (optional)');const steps=el('input');steps.type='number';steps.min=0;steps.max=200000;steps.placeholder='Leave blank if unknown';stepsLabel.append(steps);
+      const more=el('details');more.className='kappy-checkin-more';more.append(el('summary','Add details (optional)'),dateLabel,stepsLabel);wf.append(more);
+      const save=el('button','Save check-in');save.type='submit';save.className='kappy-checkin-save';wf.append(save);
+      wellbeing.prepend(wf);
+      wf.addEventListener('submit',async e=>{e.preventDefault();if(!chosenMood){const first=moodOptions.querySelector('button');first.focus();return}save.disabled=true;try{await call(client.from('kappy_wellbeing').insert({team_id:teamId,author_id:user.id,observed_on:observed.value,mood:chosenMood,steps:steps.value===''?null:Number(steps.value)}));await refresh()}catch(err){root.append(message('Check-in not saved: '+err.message))}finally{save.disabled=false}});
       await mountTeamNotifications(client,panes.calendar,user,teamId);
       const team=el('section');team.append(el('h3','Care circle members'));const memberData=await call(client.from('kappy_members').select('user_id,role').eq('team_id',teamId));for(const m of memberData){team.append(el('p',(m.user_id===user.id?'You':m.user_id.slice(0,8))+' · '+(m.role==='admin'?'Care Steward':m.role==='payroll_manager'?'Payroll Coordinator':'Caregiver')))}panes.people.append(team);
       const workHost=el('div');panes.payroll.append(workHost);await mountWorkRecords(client,workHost,user,teamId);
