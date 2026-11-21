@@ -26,8 +26,8 @@ export function mountLiveWorkspace(client, host, user) {
       if(!teams.some(t=>t.id===teamId))teamId=teams[0].id;
       const label=el('label','Active team ');const select=el('select');select.setAttribute('aria-label','Active team');
       for(const t of teams){const opt=el('option',t.name);opt.value=t.id;opt.selected=t.id===teamId;select.append(opt)}
-      select.addEventListener('change',()=>{teamId=select.value;refresh()});label.append(select);root.append(label);
-      const welcome=el('div');welcome.className='care-welcome';welcome.append(el('span','YOUR CARE CIRCLE'),el('h2','Care happens together.'));root.append(welcome);
+      select.addEventListener('change',()=>{teamId=select.value;refresh()});label.append(select);label.className='kappy-team-picker';if(teams.length>1)root.append(label);
+      const welcome=el('div');welcome.className='care-welcome';welcome.append(el('span','Care for'),el('strong',teams.find(t=>t.id===teamId)?.name||'Your team'));root.append(welcome);
       const nav=el('nav');nav.className='kappy-live-nav';nav.setAttribute('aria-label','Care circle sections');
       const panes={};const content=el('div');root.append(content,nav);
       for(const [id,name] of [['home','Home'],['calendar','Calendar'],['messages','Messages'],['wellbeing','Care Notes'],['payroll','My Hours'],['people','Team']]){
@@ -40,7 +40,7 @@ export function mountLiveWorkspace(client, host, user) {
       // Four clear entry points, with the existing live screens one tap away.
       const home=panes.home;
       const intro=el('section');intro.className='kappy-home-intro';
-      intro.append(el('p','WELCOME HOME'),el('h2','What would you like to do?'),el('p','Choose one. We’ll take it from there.'));
+      intro.append(el('h2','What would you like to do?'));
       home.append(intro);
       const choices=el('div');choices.className='kappy-home-choices';
       for(const [id,icon,label,hint] of [
