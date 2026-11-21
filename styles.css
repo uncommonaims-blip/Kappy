@@ -148,3 +148,24 @@
 #live-workspace .kappy-home-choices{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;width:100%;align-items:stretch}
 #live-workspace .kappy-home-choice{display:flex!important;flex-direction:column!important;width:100%!important;height:auto!important;min-width:0;min-height:155px!important}
 @media(max-width:680px){#live-workspace .kappy-live-nav{position:fixed!important;left:0!important;right:0!important;top:auto!important;bottom:0!important;width:100vw!important;max-width:100vw!important;max-height:76px!important;justify-content:flex-start!important;padding:6px 8px max(6px,env(safe-area-inset-bottom))!important;z-index:100!important;background:#fff!important;border-radius:0!important}#live-workspace .kappy-live-nav button{font-size:12px!important;padding:10px 12px!important}#live-workspace>.card{padding-bottom:88px!important}}
+
+
+/* Compact first screen: four primary actions visible above the fold on phones. */
+#kappy-app{padding-top:10px}
+#kappy-app>.top{min-height:54px;margin-bottom:4px}
+#kappy-app .brand{font-size:27px}
+#kappy-app .version{font-size:11px;padding:6px 8px;border-radius:8px}
+#kappy-app .auth-bar{padding:0 0 6px;min-height:0}
+#kappy-app .auth-bar #auth-status{display:none}
+#kappy-app .auth-bar #google-logout{padding:5px 9px;font-size:12px}
+#live-workspace .care-welcome{display:flex;align-items:baseline;gap:8px;padding:3px 2px 6px}
+#live-workspace .care-welcome span{font-size:12px;letter-spacing:0;text-transform:none}
+#live-workspace .care-welcome strong{font-size:17px}
+#live-workspace .kappy-home-intro{padding:8px 4px 14px!important}
+#live-workspace .kappy-home-intro h2{font-size:clamp(19px,5vw,25px);margin:0}
+#live-workspace .kappy-home-choices{gap:10px}
+#live-workspace .kappy-home-choice{min-height:140px!important;padding:12px 6px}
+#live-workspace .kappy-home-symbol{font-size:32px}
+#live-workspace .kappy-home-choice strong{font-size:18px}
+#live-workspace .kappy-home-choice small{font-size:12px}
+@media(max-width:680px){#kappy-app{padding:7px 12px 0}#kappy-app .top{min-height:48px}#kappy-app .auth-bar{position:absolute;top:12px;right:95px}#kappy-app .auth-bar #google-logout{font-size:11px;padding:6px}#live-workspace .kappy-home-choice{min-height:132px!important}#live-workspace .kappy-home-intro{padding:5px 4px 12px!important}}
