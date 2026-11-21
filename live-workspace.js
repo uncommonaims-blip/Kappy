@@ -8,7 +8,7 @@ export function mountLiveWorkspace(client, host, user) {
   root.className='card';
   root.setAttribute('aria-label','Live care team workspace');
   host.append(root);
-  let teamId=null, channel='general', activeTab='calendar', viewMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1), selectedDay=null;
+  let teamId=null, channel='general', activeTab='home', viewMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1), selectedDay=null;
   const el=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n};
   const message=text=>{const p=el('p',text);p.setAttribute('role','status');return p};
   async function call(promise){const {data,error}=await promise;if(error)throw error;return data}
@@ -29,13 +29,13 @@ export function mountLiveWorkspace(client, host, user) {
       select.addEventListener('change',()=>{teamId=select.value;refresh()});label.append(select);root.append(label);
       const welcome=el('div');welcome.className='care-welcome';welcome.append(el('span','YOUR CARE CIRCLE'),el('h2','Care happens together.'));root.append(welcome);
       const nav=el('nav');nav.className='kappy-live-nav';nav.setAttribute('aria-label','Care circle sections');
-      const panes={};const content=el('div');root.append(nav,content);
-      for(const [id,name] of [['calendar','Calendar'],['messages','Messages'],['wellbeing','Wellbeing'],['people','Team'],['payroll','Payroll']]){
+      const panes={};const content=el('div');root.append(content,nav);
+      for(const [id,name] of [['home','Home'],['calendar','Calendar'],['messages','Messages'],['wellbeing','Care Notes'],['payroll','My Hours'],['people','Team']]){
         const button=el('button',name);button.type='button';button.dataset.liveTab=id;
         button.addEventListener('click',()=>{activeTab=id;activate()});nav.append(button);
         const pane=el('section');pane.className='care-pane';pane.dataset.pane=id;content.append(pane);panes[id]=pane;
       }
-      function activate(){for(const [id,pane] of Object.entries(panes))pane.hidden=id!==activeTab;for(const b of nav.querySelectorAll('button')){const selected=b.dataset.liveTab===activeTab;b.setAttribute('aria-current',selected?'page':'false');b.classList.toggle('active',selected)}window.scrollTo?.({top:0,behavior:'instant'})}
+      function activate(){for(const [id,pane] of Object.entries(panes))pane.hidden=id!==activeTab;for(const b of nav.querySelectorAll('button')){const selected=b.dataset.liveTab===activeTab;b.setAttribute('aria-current',selected?'page':'false');b.classList.toggle('active',selected)}window.scrollTo?.(0,0)}
       activate();
       const [entries,posts,checks]=await Promise.all([
         call(client.from('kappy_calendar_entries').select('id,title,kind,starts_at,ends_at,status').eq('team_id',teamId).order('starts_at',{ascending:false}).limit(25)),
@@ -72,8 +72,7 @@ export function mountLiveWorkspace(client, host, user) {
         monthCard.append(grid);
         if(selectedDay){const detail=el('div');detail.className='care-day-detail';detail.append(el('strong',new Date(selectedDay+'T12:00:00').toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'})));const matches=entries.filter(x=>x.starts_at.slice(0,10)<=selectedDay&&x.ends_at.slice(0,10)>=selectedDay);detail.append(el('p',matches.length?matches.map(x=>x.title||x.kind).join(' · '):'No events on this date'));monthCard.append(detail)}
       }
-      drawMonth();
-      const cf=el('form');const date=el('input');date.type='date';date.required=true;date.setAttribute('aria-label','Calendar date');const title=el('input');title.placeholder='Event title';title.required=true;title.maxLength=100;title.setAttribute('aria-label','Event title');const add=el('button','Add shared event');add.type='submit';cf.append(date,title,add);const addDetails=el('details');addDetails.className='care-action-details';const addSummary=el('summary','+ Add calendar event');addDetails.append(addSummary,cf);panes.calendar.insertBefore(addDetails,calendar);
+      const cf=el('form');const date=el('input');date.type='date';date.required=true;date.setAttribute('aria-label','Calendar date');const title=el('input');title.placeholder='Event title';title.required=true;title.maxLength=100;title.setAttribute('aria-label','Event title');const add=el('button','Add shared event');add.type='submit';cf.append(date,title,add);const addDetails=el('details');addDetails.className='care-action-details';const addSummary=el('summary','+ Add calendar event');addDetails.append(addSummary,cf);panes.calendar.insertBefore(addDetails,calendar);drawMonth();
       cf.addEventListener('submit',async e=>{e.preventDefault();add.disabled=true;try{const starts_at=date.value+'T12:00:00';const ends_at=date.value+'T13:00:00';await call(client.from('kappy_calendar_entries').insert({team_id:teamId,created_by:user.id,kind:'event',starts_at:new Date(starts_at).toISOString(),ends_at:new Date(ends_at).toISOString(),title:title.value.trim()}));await refresh()}catch(err){root.append(message('Event not saved: '+err.message))}finally{add.disabled=false}});
       const messages=section('Team messages',posts.filter(p=>p.channel===channel),x=>new Date(x.created_at).toLocaleString()+' · '+x.body);
       const ch=el('select');ch.setAttribute('aria-label','Message channel');for(const value of ['general','nutrition','sleep']){const o=el('option',value);o.value=value;o.selected=value===channel;ch.append(o)}ch.addEventListener('change',()=>{channel=ch.value;refresh()});messages.prepend(ch);
@@ -85,6 +84,25 @@ export function mountLiveWorkspace(client, host, user) {
       await mountTeamNotifications(client,panes.calendar,user,teamId);
       const team=el('section');team.append(el('h3','Care circle members'));const memberData=await call(client.from('kappy_members').select('user_id,role').eq('team_id',teamId));for(const m of memberData){team.append(el('p',(m.user_id===user.id?'You':m.user_id.slice(0,8))+' · '+(m.role==='admin'?'Care Steward':m.role==='payroll_manager'?'Payroll Coordinator':'Caregiver')))}panes.people.append(team);
       const workHost=el('div');panes.payroll.append(workHost);await mountWorkRecords(client,workHost,user,teamId);
+      // Four clear entry points, with the existing live screens one tap away.
+      const home=panes.home;
+      const intro=el('section');intro.className='kappy-home-intro';
+      intro.append(el('p','WELCOME HOME'),el('h2','What would you like to do?'),el('p','Choose one. We’ll take it from there.'));
+      home.append(intro);
+      const choices=el('div');choices.className='kappy-home-choices';
+      for(const [id,icon,label,hint] of [
+        ['calendar','📅','Calendar',"See who's working"],
+        ['messages','💬','Messages','Talk to the team'],
+        ['wellbeing','❤️','Care Notes','Record a check-in'],
+        ['payroll','🕒','My Hours','Record work and expenses']
+      ]){
+        const b=el('button');b.type='button';b.className='kappy-home-choice';
+        const symbol=el('span',icon);symbol.className='kappy-home-symbol';
+        const name=el('strong',label);const sub=el('small',hint);
+        b.append(symbol,name,sub);b.addEventListener('click',()=>{activeTab=id;activate()});choices.append(b);
+      }
+      home.append(choices);
+      const help=el('p','Need to see the team? Tap Team below.');help.className='kappy-home-help';home.append(help);
       const reload=el('button','Refresh shared records');reload.type='button';reload.addEventListener('click',refresh);root.append(reload);
     } catch(err){root.append(message('Shared workspace unavailable: '+err.message))}
   }

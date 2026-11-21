@@ -119,3 +119,20 @@
 #live-workspace .care-pane li{padding:6px 0}
 #live-workspace .care-pane>.card{padding:16px}
 @media(max-width:680px){.app{padding:12px}.intro{padding:10px 0}.intro h1{font-size:26px}.intro p{font-size:13px}.auth-bar{padding:5px 0}.version{font-size:11px;padding:7px}.care-day{min-height:43px}.care-pane>section,.care-pane>div>section{padding:13px}#live-workspace>.card{margin-bottom:70px}}
+
+
+/* Accessible, one-tap caregiver home */
+.kappy-home-intro{text-align:center;padding:25px 10px 14px!important;border:0!important;background:transparent!important}
+.kappy-home-intro p:first-child{font-size:11px;letter-spacing:.13em;color:#668371;font-weight:800}
+.kappy-home-intro h2{font-size:clamp(24px,5vw,34px);margin:10px 0}
+.kappy-home-intro p:last-child{color:#64766a;margin:0}
+.kappy-home-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.kappy-home-choice{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;border:2px solid #d9e6da;border-radius:22px;background:#fff;color:#263d34;min-height:174px;padding:20px 10px;box-shadow:0 4px 16px #24472c0a}
+.kappy-home-choice:focus-visible{outline:4px solid #387c58;outline-offset:3px}
+.kappy-home-choice:active{transform:scale(.98)}
+.kappy-home-symbol{font-size:43px;line-height:1.2}
+.kappy-home-choice strong{font-size:21px}
+.kappy-home-choice small{font-size:13px;color:#61796b}
+.kappy-home-help{text-align:center;color:#718377;font-size:13px;margin:24px 0}
+@media(max-width:680px){.kappy-live-nav{position:fixed!important;bottom:0;top:auto;left:0;right:0;justify-content:space-around;gap:0!important;border-top:1px solid #d9e4d9;box-shadow:0 -5px 18px #173c2612;padding:9px 4px max(9px,env(safe-area-inset-bottom))!important;background:#fff!important}.kappy-live-nav button{font-size:11px!important;padding:12px 7px!important;min-height:48px}.kappy-home-choices{gap:10px}.kappy-home-choice{min-height:155px;padding:14px 6px}.kappy-home-choice strong{font-size:18px}.kappy-home-symbol{font-size:38px}#live-workspace>.card{padding-bottom:85px!important}}
+@media(max-width:360px){.kappy-live-nav button{font-size:10px!important;padding:11px 5px!important}.kappy-home-choice small{font-size:12px}}

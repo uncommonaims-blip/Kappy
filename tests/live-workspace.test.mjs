@@ -23,7 +23,9 @@ test('beta clearly separates synchronized records from demo panels',()=>{
  assert.match(html,/Live team workspace\. Use synthetic data only until beta security approval/);
  assert.match(html,/\.tabs,#panel\{display:none!important\}/);
  assert.match(workspace,/\['calendar','Calendar'\]/);
- assert.match(workspace,/\['payroll','Payroll'\]/);
+ assert.match(workspace,/\['payroll','My Hours'\]/);
+ assert.match(workspace,/\['home','Home'\]/);
+ assert.match(workspace,/kappy-home-choice/);
 });
 test('workspace never uses service role or innerHTML for server content',()=>{
  assert.doesNotMatch(workspace,/service_role|serviceRole|innerHTML/);
