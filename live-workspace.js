@@ -99,15 +99,32 @@ export function mountLiveWorkspace(client, host, user) {
       mf.addEventListener('submit',async e=>{e.preventDefault();send.disabled=true;try{await call(client.from('kappy_messages').insert({team_id:teamId,author_id:user.id,channel,body:body.value.trim()}));await refresh()}catch(err){root.append(message('Message not sent: '+err.message))}finally{send.disabled=false}});
       const wellbeing=section('Recent check-ins',checks,x=>x.observed_on+' · '+(x.mood||'Mood not recorded')+(x.steps==null?'':' · '+x.steps+' steps'));
       const wf=el('form');wf.className='kappy-checkin-form';
-      const prompt=el('h3','How is Sylvie feeling?');wf.append(prompt);
+      const preferenceKey='kappy-checkin-icons:'+user.id;
+      let iconStyle='emoji';try{iconStyle=localStorage.getItem(preferenceKey)==='classic'?'classic':'emoji'}catch{}
+      const displaySettings=el('div');displaySettings.className='kappy-icon-settings';
+      const displayLabel=el('span','Icon style');const styleButtons=el('div');styleButtons.className='kappy-icon-style-options';styleButtons.setAttribute('role','group');styleButtons.setAttribute('aria-label','Check-in icon style');
       const moodOptions=el('div');moodOptions.className='kappy-mood-options';moodOptions.setAttribute('role','group');moodOptions.setAttribute('aria-label','Choose how Sylvie is feeling');
+      const moodItems=[['😊','Good','good','sun'],['😐','Okay','okay','minus'],['😟','Not great','not great','cloud-rain']];
       let chosenMood='';
-      for(const [emoji,label,value] of [['😊','Good','good'],['😐','Okay','okay'],['😟','Not great','not great']]){
-        const option=el('button');option.type='button';option.className='kappy-mood-option';option.setAttribute('aria-pressed','false');
-        option.append(el('span',emoji),el('strong',label));
-        option.addEventListener('click',()=>{chosenMood=value;for(const b of moodOptions.querySelectorAll('button')){const selected=b===option;b.setAttribute('aria-pressed',String(selected));b.classList.toggle('selected',selected)}});
-        moodOptions.append(option);
+      const renderMood=()=>{
+        moodOptions.replaceChildren();
+        for(const [emoji,label,value,symbol] of moodItems){
+          const option=el('button');option.type='button';option.className='kappy-mood-option';option.setAttribute('aria-pressed',String(chosenMood===value));option.classList.toggle('selected',chosenMood===value);
+          const graphic=el('span',iconStyle==='emoji'?emoji:({sun:'☀',minus:'−','cloud-rain':'☁'}[symbol]));graphic.className=iconStyle==='emoji'?'kappy-emoji-symbol':'kappy-classic-symbol';
+          option.append(graphic,el('strong',label));
+          option.addEventListener('click',()=>{chosenMood=value;renderMood()});
+          moodOptions.append(option);
+        }
+      };
+      for(const [value,label] of [['emoji','😊 Emoji'],['classic','Kappy Classic']]){
+        const button=el('button',label);button.type='button';button.className='kappy-style-choice';
+        button.setAttribute('aria-pressed',String(iconStyle===value));
+        button.addEventListener('click',()=>{iconStyle=value;try{localStorage.setItem(preferenceKey,value)}catch{};for(const b of styleButtons.querySelectorAll('button'))b.setAttribute('aria-pressed',String(b===button));renderMood()});
+        styleButtons.append(button);
       }
+      displaySettings.append(displayLabel,styleButtons);wf.append(displaySettings);
+      const prompt=el('h3','How is Sylvie feeling?');wf.append(prompt);
+      renderMood();
       wf.append(moodOptions);
       const dateLabel=el('label','Date');const observed=el('input');observed.type='date';observed.required=true;observed.value=new Date().toLocaleDateString('en-CA');dateLabel.append(observed);
       const stepsLabel=el('label','Steps (optional)');const steps=el('input');steps.type='number';steps.min=0;steps.max=200000;steps.placeholder='Leave blank if unknown';stepsLabel.append(steps);
