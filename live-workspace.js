@@ -37,6 +37,25 @@ export function mountLiveWorkspace(client, host, user) {
       }
       function activate(){for(const [id,pane] of Object.entries(panes))pane.hidden=id!==activeTab;for(const b of nav.querySelectorAll('button')){const selected=b.dataset.liveTab===activeTab;b.setAttribute('aria-current',selected?'page':'false');b.classList.toggle('active',selected)}window.scrollTo?.(0,0)}
       activate();
+      // Four clear entry points, with the existing live screens one tap away.
+      const home=panes.home;
+      const intro=el('section');intro.className='kappy-home-intro';
+      intro.append(el('p','WELCOME HOME'),el('h2','What would you like to do?'),el('p','Choose one. We’ll take it from there.'));
+      home.append(intro);
+      const choices=el('div');choices.className='kappy-home-choices';
+      for(const [id,icon,label,hint] of [
+        ['calendar','📅','Calendar',"See who's working"],
+        ['messages','💬','Messages','Talk to the team'],
+        ['wellbeing','❤️','Care Notes','Record a check-in'],
+        ['payroll','🕒','My Hours','Record work and expenses']
+      ]){
+        const b=el('button');b.type='button';b.className='kappy-home-choice';
+        const symbol=el('span',icon);symbol.className='kappy-home-symbol';
+        const name=el('strong',label);const sub=el('small',hint);
+        b.append(symbol,name,sub);b.addEventListener('click',()=>{activeTab=id;activate()});choices.append(b);
+      }
+      home.append(choices);
+      const help=el('p','Need to see the team? Tap Team below.');help.className='kappy-home-help';home.append(help);
       const [entries,posts,checks]=await Promise.all([
         call(client.from('kappy_calendar_entries').select('id,title,kind,starts_at,ends_at,status').eq('team_id',teamId).order('starts_at',{ascending:false}).limit(25)),
         call(client.from('kappy_messages').select('id,body,channel,created_at').eq('team_id',teamId).order('created_at',{ascending:false}).limit(30)),
@@ -84,25 +103,6 @@ export function mountLiveWorkspace(client, host, user) {
       await mountTeamNotifications(client,panes.calendar,user,teamId);
       const team=el('section');team.append(el('h3','Care circle members'));const memberData=await call(client.from('kappy_members').select('user_id,role').eq('team_id',teamId));for(const m of memberData){team.append(el('p',(m.user_id===user.id?'You':m.user_id.slice(0,8))+' · '+(m.role==='admin'?'Care Steward':m.role==='payroll_manager'?'Payroll Coordinator':'Caregiver')))}panes.people.append(team);
       const workHost=el('div');panes.payroll.append(workHost);await mountWorkRecords(client,workHost,user,teamId);
-      // Four clear entry points, with the existing live screens one tap away.
-      const home=panes.home;
-      const intro=el('section');intro.className='kappy-home-intro';
-      intro.append(el('p','WELCOME HOME'),el('h2','What would you like to do?'),el('p','Choose one. We’ll take it from there.'));
-      home.append(intro);
-      const choices=el('div');choices.className='kappy-home-choices';
-      for(const [id,icon,label,hint] of [
-        ['calendar','📅','Calendar',"See who's working"],
-        ['messages','💬','Messages','Talk to the team'],
-        ['wellbeing','❤️','Care Notes','Record a check-in'],
-        ['payroll','🕒','My Hours','Record work and expenses']
-      ]){
-        const b=el('button');b.type='button';b.className='kappy-home-choice';
-        const symbol=el('span',icon);symbol.className='kappy-home-symbol';
-        const name=el('strong',label);const sub=el('small',hint);
-        b.append(symbol,name,sub);b.addEventListener('click',()=>{activeTab=id;activate()});choices.append(b);
-      }
-      home.append(choices);
-      const help=el('p','Need to see the team? Tap Team below.');help.className='kappy-home-help';home.append(help);
       const reload=el('button','Refresh shared records');reload.type='button';reload.addEventListener('click',refresh);root.append(reload);
     } catch(err){root.append(message('Shared workspace unavailable: '+err.message))}
   }
