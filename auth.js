@@ -12,6 +12,7 @@ const storage={
 };
 const supabase=createClient("https://qswyqcbunrdsiyyltdct.supabase.co","sb_publishable_z_9muNs_w-Odghw6ziVTfw_6fpO3n-e",{auth:{storage,storageKey:authKey,persistSession:true,detectSessionInUrl:true}});
 const splash=document.getElementById("splash"),app=document.getElementById("kappy-app");
+const phonePanel=document.getElementById("phone-signin"),phoneInput=document.getElementById("kappy-phone"),phoneStatus=document.getElementById("kappy-phone-status"),sendCode=document.getElementById("kappy-send-code"),verifyPanel=document.getElementById("kappy-verify-panel"),otpInput=document.getElementById("kappy-otp"),verifyCode=document.getElementById("kappy-verify-code");
 const splashStatus=document.getElementById("splash-status"),splashGoogle=document.getElementById("splash-google"),splashEnter=document.getElementById("splash-enter");
 const status=document.getElementById("auth-status"),login=document.getElementById("google-login"),logout=document.getElementById("google-logout");
 let entered=false,entryPending=false;
@@ -43,7 +44,8 @@ function show(session){
  onboarding.hidden=!user||!!chosen;
  if(user&&!chosen){displayName.value=displayName.value||user.user_metadata?.full_name?.split(" ")[0]||"";}
  login.hidden=!!user;logout.hidden=!user;
- status.textContent=user?"Signed in: "+(user.email||"Google account"):"Not signed in";
+ status.textContent=user?"Signed in: "+(user.email||user.phone||"Account"):"Not signed in";
+ phonePanel.hidden=!!user;
  splashStatus.textContent=user?(chosen?"Welcome back, "+chosen+"!":"Let’s get acquainted"):"Welcome to Kappy";
  splashGoogle.hidden=!!user;splashEnter.hidden=!user||!chosen;
  if(user&&chosen&&!entered&&!entryPending){entryPending=true;setTimeout(()=>{entryPending=false;if(splashEnter.hidden===false)enter()},1900)}
@@ -55,6 +57,36 @@ async function startLogin(){
  try{const {error}=await supabase.auth.signInWithOAuth({provider:"google",options:{redirectTo:location.origin+location.pathname}});if(error)throw error}
  catch(err){status.textContent="Google sign-in failed: "+err.message;splashStatus.textContent=status.textContent;login.disabled=false;splashGoogle.disabled=false}
 }
+let requestedPhone="";
+function normalizePhone(value){
+ const cleaned=value.trim().replace(/[\\s().-]/g,"");
+ return /^\\+[1-9]\\d{7,14}$/.test(cleaned)?cleaned:null;
+}
+sendCode.addEventListener("click",async()=>{
+ const phone=normalizePhone(phoneInput.value);
+ if(!phone){phoneStatus.textContent="Enter your phone number with country code, such as +1 555 123 4567.";return}
+ sendCode.disabled=true;phoneStatus.textContent="Sending verification code…";
+ try{
+   const {error}=await supabase.auth.signInWithOtp({phone,options:{channel:"sms",shouldCreateUser:true}});
+   if(error)throw error;
+   requestedPhone=phone;verifyPanel.hidden=false;phoneStatus.textContent="Code requested. Check your text messages.";otpInput.focus();
+ }catch(err){phoneStatus.textContent="Could not send a code: "+err.message+". Phone sign-in may need to be enabled by the team administrator."}
+ finally{sendCode.disabled=false}
+});
+verifyCode.addEventListener("click",async()=>{
+ if(!requestedPhone){phoneStatus.textContent="Request a new code first.";return}
+ const token=otpInput.value.trim();
+ if(!/^\\d{4,8}$/.test(token)){phoneStatus.textContent="Enter the numeric code from your text message.";return}
+ verifyCode.disabled=true;phoneStatus.textContent="Verifying…";
+ try{
+   const {data,error}=await supabase.auth.verifyOtp({phone:requestedPhone,token,type:"sms"});
+   if(error)throw error;
+   otpInput.value="";verifyPanel.hidden=true;phoneStatus.textContent="Phone verified.";
+   show(data.session);
+ }catch(err){phoneStatus.textContent="Code could not be verified: "+err.message}
+ finally{verifyCode.disabled=false}
+});
+phoneInput.addEventListener("input",()=>{if(requestedPhone&&normalizePhone(phoneInput.value)!==requestedPhone){requestedPhone="";verifyPanel.hidden=true}});
 login.addEventListener("click",startLogin);splashGoogle.addEventListener("click",startLogin);
 logout.addEventListener("click",async()=>{
  logout.disabled=true;
