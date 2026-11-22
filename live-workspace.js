@@ -12,7 +12,9 @@ export function mountLiveWorkspace(client, host, user) {
   const el=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n};
   const message=text=>{const p=el('p',text);p.setAttribute('role','status');return p};
   async function call(promise){const {data,error}=await promise;if(error)throw error;return data}
+  let chatSubscription=null;
   async function refresh(){
+    if(chatSubscription){client.removeChannel(chatSubscription);chatSubscription=null}
     root.replaceChildren();
     try {
       const teams=await call(client.from('kappy_teams').select('id,name').order('created_at'));
@@ -93,10 +95,60 @@ export function mountLiveWorkspace(client, host, user) {
       }
       const cf=el('form');const date=el('input');date.type='date';date.required=true;date.setAttribute('aria-label','Calendar date');const title=el('input');title.placeholder='Event title';title.required=true;title.maxLength=100;title.setAttribute('aria-label','Event title');const add=el('button','Add shared event');add.type='submit';cf.append(date,title,add);const addDetails=el('details');addDetails.className='care-action-details';const addSummary=el('summary','+ Add calendar event');addDetails.append(addSummary,cf);panes.calendar.insertBefore(addDetails,calendar);drawMonth();
       cf.addEventListener('submit',async e=>{e.preventDefault();add.disabled=true;try{const starts_at=date.value+'T12:00:00';const ends_at=date.value+'T13:00:00';await call(client.from('kappy_calendar_entries').insert({team_id:teamId,created_by:user.id,kind:'event',starts_at:new Date(starts_at).toISOString(),ends_at:new Date(ends_at).toISOString(),title:title.value.trim()}));await refresh()}catch(err){root.append(message('Event not saved: '+err.message))}finally{add.disabled=false}});
-      const messages=section('Team messages',posts.filter(p=>p.channel===channel),x=>new Date(x.created_at).toLocaleString()+' · '+x.body);
-      const ch=el('select');ch.setAttribute('aria-label','Message channel');for(const value of ['general','nutrition','sleep']){const o=el('option',value);o.value=value;o.selected=value===channel;ch.append(o)}ch.addEventListener('change',()=>{channel=ch.value;refresh()});messages.prepend(ch);
-      const mf=el('form');const body=el('textarea');body.required=true;body.maxLength=5000;body.placeholder='Message your team';body.setAttribute('aria-label','Message');const send=el('button','Send message');send.type='submit';mf.append(body,send);messages.append(mf);
-      mf.addEventListener('submit',async e=>{e.preventDefault();send.disabled=true;try{await call(client.from('kappy_messages').insert({team_id:teamId,author_id:user.id,channel,body:body.value.trim()}));await refresh()}catch(err){root.append(message('Message not sent: '+err.message))}finally{send.disabled=false}});
+      // Live text-message style team chat. Only team channels are supported in this beta.
+      const messages=el('section');messages.className='kappy-chat';panes.messages.append(messages);
+      const chatHeader=el('div');chatHeader.className='kappy-chat-header';
+      const chatTitle=el('h3','Team chat');
+      const chatConnection=el('span','Connecting…');chatConnection.className='kappy-chat-connection';chatConnection.setAttribute('role','status');
+      chatHeader.append(chatTitle,chatConnection);messages.append(chatHeader);
+      const ch=el('select');ch.setAttribute('aria-label','Chat topic');
+      for(const [value,label] of [['general','💬 General'],['nutrition','🍽️ Nutrition'],['sleep','🌙 Sleep']]){const o=el('option',label);o.value=value;o.selected=value===channel;ch.append(o)}
+      messages.append(ch);
+      const conversation=el('div');conversation.className='kappy-chat-conversation';conversation.setAttribute('role','log');conversation.setAttribute('aria-label','Team conversation');conversation.setAttribute('aria-live','polite');messages.append(conversation);
+      const chatError=el('p');chatError.className='kappy-chat-error';chatError.setAttribute('role','status');messages.append(chatError);
+      const mf=el('form');mf.className='kappy-chat-compose';
+      const body=el('textarea');body.required=true;body.maxLength=5000;body.rows=2;body.placeholder='Message the care team…';body.setAttribute('aria-label','Type a message');
+      const send=el('button','Send ➤');send.type='submit';mf.append(body,send);messages.append(mf);
+      const seenMessages=new Set();
+      const renderChat=(records)=>{
+        conversation.replaceChildren();seenMessages.clear();
+        if(!records.length){const empty=el('p','No messages yet. Say hello to your team!');empty.className='kappy-chat-empty';conversation.append(empty)}
+        for(const record of records){
+          if(seenMessages.has(record.id))continue;seenMessages.add(record.id);
+          const bubble=el('div');bubble.className='kappy-chat-bubble '+(record.author_id===user.id?'mine':'theirs');
+          const meta=el('small',(record.author_id===user.id?'You':'Caregiver')+' · '+new Date(record.created_at).toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}));
+          bubble.append(meta,el('p',record.body));conversation.append(bubble);
+        }
+        conversation.scrollTop=conversation.scrollHeight;
+      };
+      let chatRequest=0;
+      const loadChat=async()=>{
+        const request=++chatRequest;const topic=channel;
+        try{
+          const records=await call(client.from('kappy_messages').select('id,author_id,body,created_at').eq('team_id',teamId).eq('channel',topic).order('created_at',{ascending:false}).limit(100));
+          if(request!==chatRequest||topic!==channel)return;
+          renderChat(records.reverse());chatError.textContent='';
+        }catch(err){if(request===chatRequest)chatError.textContent='Messages could not load. Please try again.'}
+      };
+      ch.onchange=()=>{channel=ch.value;loadChat()};
+      mf.addEventListener('submit',async e=>{
+        e.preventDefault();const text=body.value.trim();if(!text)return;
+        const topic=channel;send.disabled=true;chatError.textContent='';
+        try{
+          await call(client.from('kappy_messages').insert({team_id:teamId,author_id:user.id,channel:topic,body:text}));
+          body.value='';await loadChat();body.focus();
+        }catch(err){chatError.textContent='Message not sent. Please check your connection and retry.'}
+        finally{send.disabled=false}
+      });
+      body.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();if(typeof mf.requestSubmit==='function')mf.requestSubmit()}});
+      await loadChat();
+      if(typeof client.channel==='function'){
+        chatSubscription=client.channel('kappy-chat-'+teamId+'-'+user.id)
+          .on('postgres_changes',{event:'INSERT',schema:'public',table:'kappy_messages',filter:'team_id=eq.'+teamId},payload=>{
+            if(payload.new&&payload.new.channel===channel)loadChat();
+          })
+          .subscribe(status=>{chatConnection.textContent=status==='SUBSCRIBED'?'● Live':status==='CHANNEL_ERROR'||status==='TIMED_OUT'?'Offline · reopen chat to retry':'Connecting…'});
+      }else{chatConnection.textContent='Refresh to see new messages'}
       const wellbeing=section('Recent check-ins',checks,x=>x.observed_on+' · '+(x.mood||'Mood not recorded')+(x.steps==null?'':' · '+x.steps+' steps'));
       const wf=el('form');wf.className='kappy-checkin-form';
       const preferenceKey='kappy-checkin-icons:'+user.id;
