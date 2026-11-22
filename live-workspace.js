@@ -60,7 +60,7 @@ export function mountLiveWorkspace(client, host, user) {
       const help=el('p','Need to see the team? Tap Team below.');help.className='kappy-home-help';home.append(help);
       const [entries,posts,checks]=await Promise.all([
         call(client.from('kappy_calendar_entries').select('id,title,kind,starts_at,ends_at,status').eq('team_id',teamId).order('starts_at',{ascending:false}).limit(25)),
-        call(client.from('kappy_messages').select('id,body,channel,created_at').eq('team_id',teamId).order('created_at',{ascending:false}).limit(30)),
+        call(client.from('kappy_messages').select('id,body,channel,created_at').eq('team_id',teamId).is('conversation_id',null).order('created_at',{ascending:false}).limit(30)),
         call(client.from('kappy_wellbeing').select('id,observed_on,steps,mood').eq('team_id',teamId).order('observed_on',{ascending:false}).limit(15))
       ]);
       const section=(heading,items,formatter)=>{const s=el('section');s.append(el('h3',heading));const ul=el('ul');for(const x of items)ul.append(el('li',formatter(x)));if(!items.length)ul.append(el('li','No records yet'));s.append(ul);panes[heading==='Upcoming care-circle events'?'calendar':heading==='Team messages'?'messages':'wellbeing'].append(s);return s};
@@ -161,7 +161,18 @@ export function mountLiveWorkspace(client, host, user) {
       chatHeader.append(chatTitle,chatConnection);messages.append(chatHeader);
       const ch=el('select');ch.setAttribute('aria-label','Chat topic');
       for(const [value,label] of [['general','💬 General'],['nutrition','🍽️ Nutrition'],['sleep','🌙 Sleep']]){const o=el('option',label);o.value=value;o.selected=value===channel;ch.append(o)}
+      const privateRooms=await call(client.from('kappy_conversations').select('id,title').eq('team_id',teamId));
+      for(const room of privateRooms){const o=el('option','🔒 '+room.title);o.value='private:'+room.id;o.selected=o.value===channel;ch.append(o)}
+      if(!Array.from(ch.options).some(o=>o.value===channel))channel='general';
+      ch.value=channel;
       messages.append(ch);
+      const create=el('details');create.append(el('summary','New private conversation'));
+      const cf=el('form'), ct=el('input');ct.placeholder='Conversation name';ct.required=true;ct.maxLength=100;cf.append(ct);
+      const participants=await call(client.from('kappy_members').select('user_id,role').eq('team_id',teamId));
+      for(const member of participants.filter(m=>m.user_id!==user.id)){const label=el('label');const check=el('input');check.type='checkbox';check.value=member.user_id;label.append(check,document.createTextNode(member.user_id.slice(0,8)+' · '+member.role));cf.append(label)}
+      const cb=el('button','Create conversation');cb.type='submit';const cs=el('p');cs.setAttribute('role','status');cf.append(cb,cs);create.append(cf);messages.append(create);
+      cf.onsubmit=async e=>{e.preventDefault();cb.disabled=true;try{const ids=Array.from(cf.querySelectorAll('input:checked'),x=>x.value);if(!ids.length)throw Error('Select at least one participant');const id=await call(client.rpc('kappy_create_conversation',{p_team:teamId,p_title:ct.value.trim(),p_users:ids}));channel='private:'+id;await refresh()}catch(err){cs.textContent=err.message}finally{cb.disabled=false}};
+      const privateId=topic=>topic.startsWith('private:')?topic.slice(8):null;
       const conversation=el('div');conversation.className='kappy-chat-conversation';conversation.setAttribute('role','log');conversation.setAttribute('aria-label','Team conversation');conversation.setAttribute('aria-live','polite');messages.append(conversation);
       const chatError=el('p');chatError.className='kappy-chat-error';chatError.setAttribute('role','status');messages.append(chatError);
       const mf=el('form');mf.className='kappy-chat-compose';
@@ -183,7 +194,7 @@ export function mountLiveWorkspace(client, host, user) {
       const loadChat=async()=>{
         const request=++chatRequest;const topic=channel;
         try{
-          const records=await call(client.from('kappy_messages').select('id,author_id,body,created_at').eq('team_id',teamId).eq('channel',topic).order('created_at',{ascending:false}).limit(100));
+          const records=await call(client.from('kappy_messages').select('id,author_id,body,created_at').eq('team_id',teamId).match(privateId(topic)?{conversation_id:privateId(topic)}:{channel:topic}).filter('conversation_id',privateId(topic)?'eq':'is',privateId(topic)||null).order('created_at',{ascending:false}).limit(100));
           if(request!==chatRequest||topic!==channel)return;
           renderChat(records.reverse());chatError.textContent='';
         }catch(err){if(request===chatRequest)chatError.textContent='Messages could not load. Please try again.'}
@@ -193,7 +204,7 @@ export function mountLiveWorkspace(client, host, user) {
         e.preventDefault();const text=body.value.trim();if(!text)return;
         const topic=channel;send.disabled=true;chatError.textContent='';
         try{
-          await call(client.from('kappy_messages').insert({team_id:teamId,author_id:user.id,channel:topic,body:text}));
+          await call(client.from('kappy_messages').insert({team_id:teamId,author_id:user.id,channel:privateId(topic)?'general':topic,conversation_id:privateId(topic),body:text}));
           body.value='';await loadChat();body.focus();
         }catch(err){chatError.textContent='Message not sent. Please check your connection and retry.'}
         finally{send.disabled=false}
@@ -203,7 +214,7 @@ export function mountLiveWorkspace(client, host, user) {
       if(typeof client.channel==='function'){
         chatSubscription=client.channel('kappy-chat-'+teamId+'-'+user.id)
           .on('postgres_changes',{event:'INSERT',schema:'public',table:'kappy_messages',filter:'team_id=eq.'+teamId},payload=>{
-            if(payload.new&&payload.new.channel===channel)loadChat();
+            if(payload.new&&(privateId(channel)?payload.new.conversation_id===privateId(channel):!payload.new.conversation_id&&payload.new.channel===channel))loadChat();
           })
           .subscribe(status=>{chatConnection.textContent=status==='SUBSCRIBED'?'● Live':status==='CHANNEL_ERROR'||status==='TIMED_OUT'?'Offline · reopen chat to retry':'Connecting…'});
       }else{chatConnection.textContent='Refresh to see new messages'}
