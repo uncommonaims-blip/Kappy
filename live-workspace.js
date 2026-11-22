@@ -166,10 +166,14 @@ export function mountLiveWorkspace(client, host, user) {
       if(!Array.from(ch.options).some(o=>o.value===channel))channel='general';
       ch.value=channel;
       messages.append(ch);
+      const prefs=el('details');prefs.append(el('summary','My message notifications'));
+      const saved=await call(client.from('kappy_chat_preferences').select('shared_enabled,private_enabled').eq('team_id',teamId).eq('user_id',user.id).maybeSingle());
+      const switches={};for(const [key,title] of [['shared_enabled','Shared team channels'],['private_enabled','Private conversations']]){const label=el('label');const input=el('input');input.type='checkbox';input.checked=saved?.[key]??true;switches[key]=input;label.append(input,document.createTextNode(title));prefs.append(label)}
+      const ps=el('p');ps.setAttribute('role','status');const pb=el('button','Save preferences');pb.type='button';pb.onclick=async()=>{pb.disabled=true;try{await call(client.from('kappy_chat_preferences').upsert({team_id:teamId,user_id:user.id,shared_enabled:switches.shared_enabled.checked,private_enabled:switches.private_enabled.checked}));ps.textContent='Preferences saved'}catch(e){ps.textContent=e.message}finally{pb.disabled=false}};prefs.append(pb,ps);messages.append(prefs);
       const create=el('details');create.append(el('summary','New private conversation'));
       const cf=el('form'), ct=el('input');ct.placeholder='Conversation name';ct.required=true;ct.maxLength=100;cf.append(ct);
-      const participants=await call(client.from('kappy_members').select('user_id,role').eq('team_id',teamId));
-      for(const member of participants.filter(m=>m.user_id!==user.id)){const label=el('label');const check=el('input');check.type='checkbox';check.value=member.user_id;label.append(check,document.createTextNode(member.user_id.slice(0,8)+' · '+member.role));cf.append(label)}
+      const participants=await call(client.rpc('kappy_member_directory',{p_team:teamId}));
+      for(const member of participants.filter(m=>m.user_id!==user.id)){const label=el('label');const check=el('input');check.type='checkbox';check.value=member.user_id;label.append(check,document.createTextNode(member.display_name+' · '+member.role));cf.append(label)}
       const cb=el('button','Create conversation');cb.type='submit';const cs=el('p');cs.setAttribute('role','status');cf.append(cb,cs);create.append(cf);messages.append(create);
       cf.onsubmit=async e=>{e.preventDefault();cb.disabled=true;try{const ids=Array.from(cf.querySelectorAll('input:checked'),x=>x.value);if(!ids.length)throw Error('Select at least one participant');const id=await call(client.rpc('kappy_create_conversation',{p_team:teamId,p_title:ct.value.trim(),p_users:ids}));channel='private:'+id;await refresh()}catch(err){cs.textContent=err.message}finally{cb.disabled=false}};
       const privateId=topic=>topic.startsWith('private:')?topic.slice(8):null;
@@ -185,7 +189,7 @@ export function mountLiveWorkspace(client, host, user) {
         for(const record of records){
           if(seenMessages.has(record.id))continue;seenMessages.add(record.id);
           const bubble=el('div');bubble.className='kappy-chat-bubble '+(record.author_id===user.id?'mine':'theirs');
-          const meta=el('small',(record.author_id===user.id?'You':'Caregiver')+' · '+new Date(record.created_at).toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}));
+          const meta=el('small',(record.author_id===user.id?'You':(participants.find(m=>m.user_id===record.author_id)?.display_name||'Caregiver'))+' · '+new Date(record.created_at).toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}));
           bubble.append(meta,el('p',record.body));conversation.append(bubble);
         }
         conversation.scrollTop=conversation.scrollHeight;
@@ -199,7 +203,7 @@ export function mountLiveWorkspace(client, host, user) {
           renderChat(records.reverse());chatError.textContent='';
         }catch(err){if(request===chatRequest)chatError.textContent='Messages could not load. Please try again.'}
       };
-      ch.onchange=()=>{channel=ch.value;loadChat()};
+      ch.onchange=()=>{channel=ch.value;conversation.replaceChildren();loadChat()};
       mf.addEventListener('submit',async e=>{
         e.preventDefault();const text=body.value.trim();if(!text)return;
         const topic=channel;send.disabled=true;chatError.textContent='';
@@ -314,7 +318,7 @@ export function mountLiveWorkspace(client, host, user) {
       wellbeing.prepend(wf);
       wf.addEventListener('submit',async e=>{e.preventDefault();if(!chosenMood){const first=moodOptions.querySelector('button');first.focus();return}save.disabled=true;try{await call(client.from('kappy_wellbeing').insert({team_id:teamId,author_id:user.id,observed_on:observed.value,mood:chosenMood,steps:steps.value===''?null:Number(steps.value)}));await refresh()}catch(err){root.append(message('Check-in not saved: '+err.message))}finally{save.disabled=false}});
       await mountTeamNotifications(client,panes.calendar,user,teamId);
-      const team=el('section');team.append(el('h3','Care circle members'));const memberData=await call(client.from('kappy_members').select('user_id,role').eq('team_id',teamId));for(const m of memberData){team.append(el('p',(m.user_id===user.id?'You':m.user_id.slice(0,8))+' · '+(m.role==='admin'?'Care Steward':m.role==='payroll_manager'?'Payroll Coordinator':'Caregiver')))}panes.people.append(team);
+      const team=el('section');team.append(el('h3','Care circle members'));const memberData=await call(client.rpc('kappy_member_directory',{p_team:teamId}));for(const m of memberData){team.append(el('p',(m.user_id===user.id?'You':m.display_name)+' · '+(m.role==='admin'?'Care Steward':m.role==='payroll_manager'?'Payroll Coordinator':'Caregiver')))}panes.people.append(team);
       const workHost=el('div');panes.payroll.append(workHost);await mountWorkRecords(client,workHost,user,teamId);
       const reload=el('button','Refresh shared records');reload.type='button';reload.addEventListener('click',refresh);root.append(reload);
     } catch(err){root.append(message('Shared workspace unavailable: '+err.message))}

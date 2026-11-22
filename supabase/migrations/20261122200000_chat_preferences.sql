@@ -1,0 +1,13 @@
+create function public.kappy_member_directory(p_team uuid) returns table(user_id uuid,role text,display_name text) language sql stable security definer set search_path='' as $$ select m.user_id,m.role,left(coalesce(nullif(trim(u.raw_user_meta_data->>'kappy_display_name'),''),nullif(trim(u.raw_user_meta_data->>'full_name'),''),'Caregiver '||left(m.user_id::text,8)),100) from public.kappy_members m join auth.users u on u.id=m.user_id where m.team_id=p_team and kappy_private.is_member(p_team) $$;
+revoke all on function public.kappy_member_directory(uuid) from public,anon;
+grant execute on function public.kappy_member_directory(uuid) to authenticated;
+create table public.kappy_chat_preferences(team_id uuid not null,user_id uuid not null,shared_enabled boolean not null default true,private_enabled boolean not null default true,primary key(team_id,user_id),foreign key(team_id,user_id) references public.kappy_members(team_id,user_id) on delete cascade);
+alter table public.kappy_chat_preferences enable row level security;
+revoke all on public.kappy_chat_preferences from anon,authenticated;
+grant select,insert,update on public.kappy_chat_preferences to authenticated;
+create policy own_chat_preferences on public.kappy_chat_preferences for all to authenticated using(user_id=auth.uid() and kappy_private.is_member(team_id)) with check(user_id=auth.uid() and kappy_private.is_member(team_id));
+alter table public.kappy_notifications drop constraint kappy_notifications_kind_check;
+alter table public.kappy_notifications add constraint kappy_notifications_kind_check check(kind in ('schedule_request','timesheet_submitted','timesheet_reminder','schedule_decision','chat_message'));
+create function kappy_private.notify_chat() returns trigger language plpgsql security definer set search_path='' as $$ begin insert into public.kappy_notifications(team_id,recipient_id,kind,title,body) select new.team_id,m.user_id,'chat_message','New message','Open Messages to read it.' from public.kappy_members m left join public.kappy_chat_preferences p on p.team_id=m.team_id and p.user_id=m.user_id where m.team_id=new.team_id and m.user_id<>new.author_id and ((new.conversation_id is null and coalesce(p.shared_enabled,true)) or (new.conversation_id is not null and coalesce(p.private_enabled,true) and exists(select 1 from public.kappy_conversation_members c where c.conversation_id=new.conversation_id and c.user_id=m.user_id))); return new; end $$;
+revoke all on function kappy_private.notify_chat() from public,anon,authenticated;
+create trigger kappy_chat_notify after insert on public.kappy_messages for each row execute function kappy_private.notify_chat();
