@@ -17,8 +17,14 @@ export function mountLiveWorkspace(client, host, user) {
     if(chatSubscription){client.removeChannel(chatSubscription);chatSubscription=null}
     root.replaceChildren();
     try {
+      const token=sessionStorage.getItem('kappy-invite');
+      if(token){
+        try{const state=await call(client.rpc('kappy_request_join',{p_token:token,p_name:user.user_metadata?.kappy_display_name||'Caregiver'}));sessionStorage.removeItem('kappy-invite');const url=new URL(location.href);url.searchParams.delete('invite');history.replaceState(null,'',url);root.append(message(state==='pending'?'Membership requested. Waiting for approval.':state==='declined'?'Membership request declined.':'Membership approved.'))}catch(err){root.append(message('Invitation: '+err.message));}
+      }
+      const requests=await call(client.from('kappy_join_requests').select('status').eq('user_id',user.id));
       const teams=await call(client.from('kappy_teams').select('id,name').order('created_at'));
       if(!teams.length){
+        if(requests.length||token){root.append(message(requests.some(r=>r.status==='pending')?'Waiting for team administrator approval.':requests.some(r=>r.status==='declined')?'Membership request declined.':'No approved team access yet.'));const retry=el('button','Check membership status');retry.onclick=refresh;root.append(retry);return;}
         root.append(message('No care team yet. Create one to start sharing records.'));
         const form=el('form');const name=el('input');name.required=true;name.maxLength=100;name.placeholder='Care team name';name.setAttribute('aria-label','Care team name');
         const button=el('button','Create team');button.type='submit';form.append(name,button);root.append(form);
@@ -319,6 +325,20 @@ export function mountLiveWorkspace(client, host, user) {
       wf.addEventListener('submit',async e=>{e.preventDefault();if(!chosenMood){const first=moodOptions.querySelector('button');first.focus();return}save.disabled=true;try{await call(client.from('kappy_wellbeing').insert({team_id:teamId,author_id:user.id,observed_on:observed.value,mood:chosenMood,steps:steps.value===''?null:Number(steps.value)}));await refresh()}catch(err){root.append(message('Check-in not saved: '+err.message))}finally{save.disabled=false}});
       await mountTeamNotifications(client,panes.calendar,user,teamId);
       const team=el('section');team.append(el('h3','Care circle members'));const memberData=await call(client.rpc('kappy_member_directory',{p_team:teamId}));for(const m of memberData){team.append(el('p',(m.user_id===user.id?'You':m.display_name)+' · '+(m.role==='admin'?'Care Steward':m.role==='payroll_manager'?'Payroll Coordinator':'Caregiver')))}panes.people.append(team);
+      if(memberData.some(m=>m.user_id===user.id&&m.role==='admin')){
+        const invitations=el('section');invitations.append(el('h3','Invite team members'));
+        const link=el('input');link.readOnly=true;link.setAttribute('aria-label','Reusable invitation link');
+        const info=el('p');info.setAttribute('role','status');
+        const generate=async rotate=>{try{const token=await call(client.rpc('kappy_team_link',{p_team:teamId,p_rotate:rotate}));const url=new URL(location.origin+location.pathname);url.searchParams.set('invite',token);link.value=url.href;info.textContent='Share this link with your care team.'}catch(e){info.textContent=e.message}};
+        const share=el('button','Get invitation link');share.onclick=()=>generate(false);
+        const copy=el('button','Copy link');copy.onclick=async()=>{if(!link.value)return;try{await navigator.clipboard.writeText(link.value);info.textContent='Link copied'}catch{link.select();info.textContent='Select and copy the link manually.'}};
+        const rotate=el('button','Replace link');rotate.onclick=()=>{if(confirm('Invalidate the old invitation link?'))generate(true)};
+        invitations.append(share,link,copy,rotate,info,el('h3','Pending membership requests'));
+        const pending=await call(client.from('kappy_join_requests').select('user_id,display_name').eq('team_id',teamId).eq('status','pending'));
+        if(!pending.length)invitations.append(el('p','No pending requests'));
+        for(const request of pending){const item=el('div');item.append(el('strong',request.display_name));const role=el('select');for(const r of ['caregiver','family','admin']){const o=el('option',r);o.value=r;role.append(o)}item.append(role);for(const [approve,label] of [[true,'Approve'],[false,'Decline']]){const b=el('button',label);b.onclick=async()=>{try{await call(client.rpc('kappy_review_join',{p_team:teamId,p_user:request.user_id,p_approve:approve,p_role:role.value}));await refresh()}catch(e){info.textContent=e.message}};item.append(b)}invitations.append(item)}
+        panes.people.append(invitations);
+      }
       const workHost=el('div');panes.payroll.append(workHost);await mountWorkRecords(client,workHost,user,teamId);
       const reload=el('button','Refresh shared records');reload.type='button';reload.addEventListener('click',refresh);root.append(reload);
     } catch(err){root.append(message('Shared workspace unavailable: '+err.message))}
