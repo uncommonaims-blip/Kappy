@@ -206,3 +206,23 @@
 #live-workspace .kappy-style-choice[aria-pressed="true"]{background:#fff;border-color:#c9dacd;box-shadow:0 1px 3px #24452a18;font-weight:700}
 #live-workspace .kappy-classic-symbol{display:grid;place-items:center;width:54px;height:54px;border-radius:16px;background:#e4eee6;color:#285746;font-family:system-ui,sans-serif;font-size:34px;font-weight:500}
 #live-workspace .kappy-mood-option.selected .kappy-classic-symbol{background:#c9e2d0}
+
+
+/* Familiar, accessible real-time team chat */
+#live-workspace .kappy-chat{display:flex;flex-direction:column;gap:12px;min-height:440px}
+#live-workspace .kappy-chat-header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+#live-workspace .kappy-chat-header h3{margin:0}
+#live-workspace .kappy-chat-connection{font-size:12px;color:#37684c}
+#live-workspace .kappy-chat select{min-height:44px;width:100%;border-radius:12px}
+#live-workspace .kappy-chat-conversation{height:min(52vh,470px);min-height:240px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:14px;background:#f4f8f4;border-radius:18px;border:1px solid #dbe8dd;overscroll-behavior:contain}
+#live-workspace .kappy-chat-bubble{max-width:85%;min-width:80px;padding:10px 13px;border-radius:17px;background:#fff;border:1px solid #dce6df;align-self:flex-start;overflow-wrap:anywhere}
+#live-workspace .kappy-chat-bubble.mine{align-self:flex-end;background:#d7eddd;border-color:#c3dfca;border-bottom-right-radius:5px}
+#live-workspace .kappy-chat-bubble.theirs{border-bottom-left-radius:5px}
+#live-workspace .kappy-chat-bubble small{display:block;font-size:11px;color:#4b6656;margin-bottom:4px}
+#live-workspace .kappy-chat-bubble p{margin:0;white-space:pre-wrap;line-height:1.45}
+#live-workspace .kappy-chat-empty{text-align:center;color:#58705d;margin:auto}
+#live-workspace .kappy-chat-error{min-height:1em;color:#9a3434;margin:0}
+#live-workspace .kappy-chat-compose{display:flex;align-items:flex-end;gap:8px;margin:0}
+#live-workspace .kappy-chat-compose textarea{min-width:0;flex:1;resize:vertical;min-height:48px;max-height:140px;border-radius:14px}
+#live-workspace .kappy-chat-compose button{min-height:48px;border-radius:14px;padding:10px 16px;white-space:nowrap}
+@media(max-width:400px){#live-workspace .kappy-chat-bubble{max-width:92%}#live-workspace .kappy-chat-compose button{padding:10px}}
