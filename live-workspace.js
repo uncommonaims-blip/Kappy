@@ -64,9 +64,27 @@ export function mountLiveWorkspace(client, host, user) {
         call(client.from('kappy_wellbeing').select('id,observed_on,steps,mood').eq('team_id',teamId).order('observed_on',{ascending:false}).limit(15))
       ]);
       const section=(heading,items,formatter)=>{const s=el('section');s.append(el('h3',heading));const ul=el('ul');for(const x of items)ul.append(el('li',formatter(x)));if(!items.length)ul.append(el('li','No records yet'));s.append(ul);panes[heading==='Upcoming care-circle events'?'calendar':heading==='Team messages'?'messages':'wellbeing'].append(s);return s};
-      const calendar=section('Upcoming care-circle events',entries,x=>x.starts_at.slice(0,10)+' · '+x.kind+' · '+(x.title||'Untitled')+' ('+x.status+')');
-      // Real monthly calendar. Day dots and details are drawn from persisted team events.
-      const monthCard=el('section');monthCard.className='care-month-card';panes.calendar.prepend(monthCard);
+      // Single-surface calendar: tap for details, hold to choose a range, then tap an action.
+      const calendarPane=panes.calendar;
+      const monthCard=el('section');monthCard.className='care-month-card kappy-compact-calendar';
+      calendarPane.append(monthCard);
+      let rangeStart=null,rangeEnd=null,rangeArmed=false,expandedDay=null,holdTimer=null,holdTriggered=false;
+      const calendarStatus=el('p');calendarStatus.className='kappy-calendar-status';calendarStatus.setAttribute('role','status');
+      const detail=el('div');detail.className='care-day-detail kappy-calendar-detail';
+      const actions=el('div');actions.className='kappy-calendar-actions';
+      const isoDay=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+      const pretty=key=>new Date(key+'T12:00:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});
+      function matching(key){return entries.filter(x=>x.starts_at.slice(0,10)<=key&&x.ends_at.slice(0,10)>=key)}
+      function chooseDay(key){
+        if(rangeArmed&&rangeStart){
+          rangeEnd=key<rangeStart?rangeStart:key;
+          if(key<rangeStart)rangeStart=key;
+          rangeArmed=false;selectedDay=key;expandedDay=null;
+        }else if(selectedDay===key){expandedDay=expandedDay===key?null:key}
+        else{selectedDay=key;rangeStart=null;rangeEnd=null;expandedDay=null}
+        drawMonth();
+      }
+      function armRange(key){selectedDay=key;rangeStart=key;rangeEnd=null;rangeArmed=true;expandedDay=null;drawMonth()}
       function drawMonth(){
         monthCard.replaceChildren();
         const heading=el('div');heading.className='care-month-heading';
@@ -81,20 +99,60 @@ export function mountLiveWorkspace(client, host, user) {
         const offset=viewMonth.getDay(),days=new Date(viewMonth.getFullYear(),viewMonth.getMonth()+1,0).getDate();
         for(let i=0;i<offset;i++)grid.append(el('span'));
         for(let day=1;day<=days;day++){
-          const key=viewMonth.getFullYear()+'-'+String(viewMonth.getMonth()+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
-          const btn=el('button',String(day));btn.type='button';btn.className='care-day';
-          btn.dataset.liveDate=key;btn.setAttribute('aria-label',key);
+          const key=isoDay(new Date(viewMonth.getFullYear(),viewMonth.getMonth(),day));
+          const btn=el('button',String(day));btn.type='button';btn.className='care-day';btn.dataset.liveDate=key;
+          btn.setAttribute('aria-label',pretty(key)+'; long press to start date range');
           if(key===selectedDay)btn.classList.add('selected');
-          if(key===new Date().toLocaleDateString('en-CA'))btn.classList.add('today');
-          if(entries.some(x=>x.starts_at.slice(0,10)<=key&&x.ends_at.slice(0,10)>=key)){const dot=el('span');dot.className='care-event-dot';btn.append(dot)}
-          btn.onclick=()=>{selectedDay=key;date.value=key;drawMonth()};
+          if(key===isoDay(new Date()))btn.classList.add('today');
+          if(rangeStart&&rangeEnd&&key>=rangeStart&&key<=rangeEnd)btn.classList.add('kappy-range-day');
+          if(key===rangeStart)btn.classList.add('kappy-range-start');
+          if(key===rangeEnd)btn.classList.add('kappy-range-end');
+          if(rangeArmed&&key===rangeStart)btn.classList.add('kappy-range-armed');
+          if(matching(key).length){const dot=el('span');dot.className='care-event-dot';btn.append(dot)}
+          btn.addEventListener('pointerdown',e=>{if(e.button!==0&&e.pointerType==='mouse')return;holdTriggered=false;clearTimeout(holdTimer);holdTimer=setTimeout(()=>{holdTriggered=true;armRange(key)},550)});
+          for(const event of ['pointerup','pointercancel','pointerleave'])btn.addEventListener(event,()=>clearTimeout(holdTimer));
+          btn.addEventListener('contextmenu',e=>{e.preventDefault();clearTimeout(holdTimer);holdTriggered=true;armRange(key)});
+          btn.addEventListener('click',()=>{if(holdTriggered){holdTriggered=false;return}chooseDay(key)});
           grid.append(btn);
         }
         monthCard.append(grid);
-        if(selectedDay){const detail=el('div');detail.className='care-day-detail';detail.append(el('strong',new Date(selectedDay+'T12:00:00').toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'})));const matches=entries.filter(x=>x.starts_at.slice(0,10)<=selectedDay&&x.ends_at.slice(0,10)>=selectedDay);detail.append(el('p',matches.length?matches.map(x=>x.title||x.kind).join(' · '):'No events on this date'));monthCard.append(detail)}
+        detail.replaceChildren();
+        const selected=selectedDay||isoDay(new Date());
+        const matches=matching(selected);
+        const summary=el('div');summary.className='kappy-calendar-summary';
+        const summaryText=el('span',pretty(selected)+' · '+(matches.length?matches.length+' item'+(matches.length===1?'':'s'):'Nothing scheduled'));
+        const more=el('button',expandedDay===selected?'Less':'Info');more.type='button';more.setAttribute('aria-label','Show details for '+pretty(selected));more.onclick=()=>{expandedDay=expandedDay===selected?null:selected;drawMonth()};
+        summary.append(summaryText,more);detail.append(summary);
+        if(expandedDay===selected){for(const item of matches)detail.append(el('p',(item.title||item.kind)+' · '+item.kind+' · '+item.status));if(!matches.length)detail.append(el('p','No team entries on this date.'))}
+        monthCard.append(detail);
+        calendarStatus.textContent=rangeArmed?'Range started: '+pretty(rangeStart)+'. Tap an end date.':rangeStart&&rangeEnd?'Selected '+pretty(rangeStart)+' through '+pretty(rangeEnd):'Tap a day to select it. Hold a day to select a date range.';
+        monthCard.append(calendarStatus,actions);
       }
-      const cf=el('form');const date=el('input');date.type='date';date.required=true;date.setAttribute('aria-label','Calendar date');const title=el('input');title.placeholder='Event title';title.required=true;title.maxLength=100;title.setAttribute('aria-label','Event title');const add=el('button','Add shared event');add.type='submit';cf.append(date,title,add);const addDetails=el('details');addDetails.className='care-action-details';const addSummary=el('summary','+ Add calendar event');addDetails.append(addSummary,cf);panes.calendar.insertBefore(addDetails,calendar);drawMonth();
-      cf.addEventListener('submit',async e=>{e.preventDefault();add.disabled=true;try{const starts_at=date.value+'T12:00:00';const ends_at=date.value+'T13:00:00';await call(client.from('kappy_calendar_entries').insert({team_id:teamId,created_by:user.id,kind:'event',starts_at:new Date(starts_at).toISOString(),ends_at:new Date(ends_at).toISOString(),title:title.value.trim()}));await refresh()}catch(err){root.append(message('Event not saved: '+err.message))}finally{add.disabled=false}});
+      let saving=false;
+      for(const [kind,label] of [['available','Available'],['unavailable','Unavailable'],['request','Request']]){
+        const button=el('button',label);button.type='button';button.className='kappy-calendar-action';
+        button.onclick=async()=>{
+          if(saving)return;
+          const start=rangeStart||selectedDay,end=rangeEnd||start;
+          if(!start){calendarStatus.textContent='Choose a date first.';return}
+          saving=true;for(const b of actions.querySelectorAll('button'))b.disabled=true;
+          calendarStatus.textContent='Saving '+label.toLowerCase()+'…';
+          try{
+            await call(client.from('kappy_calendar_entries').insert({team_id:teamId,created_by:user.id,kind,starts_at:new Date(start+'T00:00:00').toISOString(),ends_at:new Date(end+'T23:59:59').toISOString(),title:label,status:kind==='request'?'pending':'recorded'}));
+            rangeStart=null;rangeEnd=null;rangeArmed=false;
+            await refresh();
+          }catch(err){calendarStatus.textContent='Could not save: '+err.message}
+          finally{saving=false;for(const b of actions.querySelectorAll('button'))b.disabled=false}
+        };
+        actions.append(button);
+      }
+      const eventDetails=el('details');eventDetails.className='care-action-details kappy-event-details';
+      const eventForm=el('form');const eventDate=el('input');eventDate.type='date';eventDate.required=true;eventDate.value=selectedDay||isoDay(new Date());
+      const eventTitle=el('input');eventTitle.required=true;eventTitle.maxLength=100;eventTitle.placeholder='Event title';eventTitle.setAttribute('aria-label','Event title');
+      const eventSave=el('button','Save event');eventSave.type='submit';eventForm.append(eventDate,eventTitle,eventSave);
+      eventDetails.append(el('summary','+ Other event'),eventForm);calendarPane.append(eventDetails);
+      eventForm.addEventListener('submit',async e=>{e.preventDefault();eventSave.disabled=true;try{await call(client.from('kappy_calendar_entries').insert({team_id:teamId,created_by:user.id,kind:'event',starts_at:new Date(eventDate.value+'T12:00:00').toISOString(),ends_at:new Date(eventDate.value+'T13:00:00').toISOString(),title:eventTitle.value.trim()}));await refresh()}catch(err){calendarStatus.textContent='Event not saved: '+err.message}finally{eventSave.disabled=false}});
+      drawMonth();
       // Live text-message style team chat. Only team channels are supported in this beta.
       const messages=el('section');messages.className='kappy-chat';panes.messages.append(messages);
       const chatHeader=el('div');chatHeader.className='kappy-chat-header';
