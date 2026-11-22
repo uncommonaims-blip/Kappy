@@ -98,6 +98,66 @@ export function mountLiveWorkspace(client, host, user) {
       const mf=el('form');const body=el('textarea');body.required=true;body.maxLength=5000;body.placeholder='Message your team';body.setAttribute('aria-label','Message');const send=el('button','Send message');send.type='submit';mf.append(body,send);messages.append(mf);
       mf.addEventListener('submit',async e=>{e.preventDefault();send.disabled=true;try{await call(client.from('kappy_messages').insert({team_id:teamId,author_id:user.id,channel,body:body.value.trim()}));await refresh()}catch(err){root.append(message('Message not sent: '+err.message))}finally{send.disabled=false}});
       const wellbeing=section('Recent check-ins',checks,x=>x.observed_on+' · '+(x.mood||'Mood not recorded')+(x.steps==null?'':' · '+x.steps+' steps'));
+      // Tap & Track: fast, timestamped activities, with per-caregiver display preferences.
+      const activityPanel=el('section');activityPanel.className='kappy-activity-panel';
+      activityPanel.append(el('h3','Tap & Track'),el('p','Tap what happened. Kappy records the time automatically.'));
+      const activityGrid=el('div');activityGrid.className='kappy-activity-grid';
+      const activityStatus=el('p');activityStatus.setAttribute('role','status');activityStatus.className='kappy-activity-status';
+      const activityLog=el('div');activityLog.className='kappy-activity-log';
+      const activityKey='kappy-custom-activities:'+user.id+':'+teamId;
+      let customActivities=[];try{const parsed=JSON.parse(localStorage.getItem(activityKey)||'[]');if(Array.isArray(parsed))customActivities=parsed.filter(x=>x&&typeof x.label==='string'&&typeof x.key==='string').slice(0,12)}catch{}
+      const standardActivities=[
+        {key:'outside',label:'Went outside',emoji:'🌳',symbol:'♧'},
+        {key:'water',label:'Had water',emoji:'💧',symbol:'◉'},
+        {key:'meal',label:'Ate a meal',emoji:'🍽️',symbol:'▤'},
+        {key:'walk',label:'Went for a walk',emoji:'🚶',symbol:'➜'},
+        {key:'nap',label:'Had a nap',emoji:'😴',symbol:'☾'},
+        {key:'medication',label:'Medication',emoji:'💊',symbol:'✚'}
+      ];
+      let activityBusy=false;
+      const addActivity=el('button','＋ Add a button');addActivity.type='button';addActivity.className='kappy-activity-add';
+      const customForm=el('form');customForm.className='kappy-custom-activity';customForm.hidden=true;
+      const customName=el('input');customName.placeholder='Activity name';customName.maxLength=70;customName.required=true;customName.setAttribute('aria-label','New activity name');
+      const customSave=el('button','Add activity');customSave.type='submit';customForm.append(customName,customSave);
+      addActivity.onclick=()=>{customForm.hidden=!customForm.hidden;if(!customForm.hidden)customName.focus()};
+      customForm.onsubmit=e=>{e.preventDefault();const label=customName.value.trim();if(!label)return;if(customActivities.length>=12){activityStatus.textContent='Maximum 12 custom buttons';return}const key='custom_'+Math.random().toString(36).slice(2,10);customActivities.push({key,label,emoji:'⭐',symbol:'☆'});try{localStorage.setItem(activityKey,JSON.stringify(customActivities))}catch{}customName.value='';customForm.hidden=true;drawActivities()};
+      const activityPrefKey='kappy-checkin-icons:'+user.id;
+      const currentActivityStyle=()=>{try{return localStorage.getItem(activityPrefKey)==='classic'?'classic':'emoji'}catch{return 'emoji'}};
+      function drawActivities(){
+        activityGrid.replaceChildren();
+        for(const item of [...standardActivities,...customActivities]){
+          const button=el('button');button.type='button';button.className='kappy-activity-button';
+          const symbol=el('span',currentActivityStyle()==='classic'?item.symbol:item.emoji);symbol.className=currentActivityStyle()==='classic'?'kappy-classic-symbol':'kappy-emoji-symbol';
+          button.append(symbol,el('strong',item.label));
+          button.onclick=async()=>{
+            if(activityBusy)return;
+            if(item.key==='medication'){
+              activityStatus.textContent='Medication records require drug and dose confirmation. Use care notes until medication details are supported.';
+              return;
+            }
+            activityBusy=true;button.disabled=true;activityStatus.textContent='Saving '+item.label+'…';
+            try{
+              const now=new Date().toISOString();
+              await call(client.from('kappy_activity_events').insert({team_id:teamId,author_id:user.id,activity_key:item.key,activity_label:item.label,occurred_at:now}));
+              activityStatus.textContent=item.label+' recorded at '+new Date(now).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+              await loadActivityLog();
+            }catch(err){activityStatus.textContent='Not saved. Activity tracking needs beta database setup, or check your connection.'}
+            finally{activityBusy=false;button.disabled=false}
+          };
+          activityGrid.append(button);
+        }
+      }
+      async function loadActivityLog(){
+        try{
+          const events=await call(client.from('kappy_activity_events').select('activity_label,occurred_at').eq('team_id',teamId).order('occurred_at',{ascending:false}).limit(20));
+          activityLog.replaceChildren(el('h4','Recent activity'));
+          if(!events.length)activityLog.append(el('p','No activities recorded yet.'));
+          for(const event of events){const line=el('p');line.append(el('strong',event.activity_label),document.createTextNode(' · '+new Date(event.occurred_at).toLocaleString()));activityLog.append(line)}
+        }catch{activityLog.replaceChildren(el('p','Tap & Track is awaiting beta database setup.'))}
+      }
+      activityPanel.append(activityGrid,addActivity,customForm,activityStatus,activityLog);
+      panes.wellbeing.prepend(activityPanel);
+      drawActivities();loadActivityLog();
       const wf=el('form');wf.className='kappy-checkin-form';
       const preferenceKey='kappy-checkin-icons:'+user.id;
       let iconStyle='emoji';try{iconStyle=localStorage.getItem(preferenceKey)==='classic'?'classic':'emoji'}catch{}
@@ -119,7 +179,7 @@ export function mountLiveWorkspace(client, host, user) {
       for(const [value,label] of [['emoji','😊 Emoji'],['classic','Kappy Classic']]){
         const button=el('button',label);button.type='button';button.className='kappy-style-choice';
         button.setAttribute('aria-pressed',String(iconStyle===value));
-        button.addEventListener('click',()=>{iconStyle=value;try{localStorage.setItem(preferenceKey,value)}catch{};for(const b of styleButtons.querySelectorAll('button'))b.setAttribute('aria-pressed',String(b===button));renderMood()});
+        button.addEventListener('click',()=>{iconStyle=value;try{localStorage.setItem(preferenceKey,value)}catch{};for(const b of styleButtons.querySelectorAll('button'))b.setAttribute('aria-pressed',String(b===button));renderMood();drawActivities()});
         styleButtons.append(button);
       }
       displaySettings.append(displayLabel,styleButtons);wf.append(displaySettings);
