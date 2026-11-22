@@ -5,7 +5,8 @@ const workspace=readFileSync(new URL('../live-workspace.js',import.meta.url),'ut
 const auth=readFileSync(new URL('../auth.js',import.meta.url),'utf8');
 const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
 test('live workspace is mounted only for a signed-in user',()=>{
- assert.match(auth,/mountLiveWorkspace\(supabase,liveHost,user\)/);
+ assert.match(auth,/mountedUserId=user&&chosen\?user\.id:null/);
+ assert.match(auth,/if\(current===mountedUserId\)mountLiveWorkspace\(supabase,liveHost,current\?user:null\)/);
  assert.match(workspace,/if \(!user\) return/);
 });
 test('all live records are scoped to the selected team',()=>{
