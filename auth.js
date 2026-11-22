@@ -16,6 +16,8 @@ const splashStatus=document.getElementById("splash-status"),splashGoogle=documen
 const status=document.getElementById("auth-status"),login=document.getElementById("google-login"),logout=document.getElementById("google-logout");
 let entered=false,entryPending=false;
 let mountedUserId=null;
+const invite=new URLSearchParams(location.search).get('invite');
+if(invite&&/^[0-9a-f-]{36}$/i.test(invite))sessionStorage.setItem('kappy-invite',invite);
 const liveHost=document.getElementById("live-workspace");
 
 const onboarding=document.getElementById("onboarding-form");
@@ -39,7 +41,7 @@ function show(session){
  const user=session?.user;
  const chosen=user?.user_metadata?.kappy_display_name?.trim();
  window.kappySetAccountName?.(chosen||"");
- if(user?.id!==mountedUserId){mountedUserId=user?.id||null;mountLiveWorkspace(supabase,liveHost,user)}
+ if((user&&chosen?user.id:null)!==mountedUserId){mountedUserId=user&&chosen?user.id:null;const current=mountedUserId;setTimeout(()=>{if(current===mountedUserId)mountLiveWorkspace(supabase,liveHost,current?user:null)},0)}
  onboarding.hidden=!user||!!chosen;
  if(user&&!chosen){displayName.value=displayName.value||user.user_metadata?.full_name?.split(" ")[0]||"";}
  login.hidden=!!user;logout.hidden=!user;
