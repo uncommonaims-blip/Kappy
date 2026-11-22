@@ -1,0 +1,15 @@
+create table public.kappy_conversations (id uuid primary key default gen_random_uuid(), team_id uuid not null references public.kappy_teams(id) on delete cascade, title text not null check(char_length(title) between 1 and 100), unique(team_id,id));
+create table public.kappy_conversation_members (conversation_id uuid not null references public.kappy_conversations(id) on delete cascade,user_id uuid not null references auth.users(id) on delete cascade,primary key(conversation_id,user_id));
+alter table public.kappy_conversations enable row level security;
+alter table public.kappy_conversation_members enable row level security;
+revoke all on public.kappy_conversations,public.kappy_conversation_members from anon,authenticated;
+grant select on public.kappy_conversations,public.kappy_conversation_members to authenticated;
+create function kappy_private.can_read_conversation(p_id uuid,p_team uuid) returns boolean language sql stable security definer set search_path='' as $$ select auth.uid() is not null and exists(select 1 from public.kappy_conversations c join public.kappy_conversation_members m on m.conversation_id=c.id join public.kappy_members t on t.team_id=c.team_id and t.user_id=m.user_id where c.id=p_id and c.team_id=p_team and m.user_id=auth.uid()) $$;
+revoke all on function kappy_private.can_read_conversation(uuid,uuid) from public,anon;
+grant execute on function kappy_private.can_read_conversation(uuid,uuid) to authenticated;
+create policy conversation_read on public.kappy_conversations for select to authenticated using(kappy_private.can_read_conversation(id,team_id));
+create policy conversation_member_read on public.kappy_conversation_members for select to authenticated using(user_id=auth.uid() and exists(select 1 from public.kappy_conversations c where c.id=conversation_id));
+alter table public.kappy_messages add column conversation_id uuid;
+alter table public.kappy_messages add constraint message_conversation_team_fk foreign key(team_id,conversation_id) references public.kappy_conversations(team_id,id);
+create index kappy_messages_conversation_idx on public.kappy_messages(conversation_id,created_at);
+create policy message_private_boundary on public.kappy_messages as restrictive for all to authenticated using(conversation_id is null or kappy_private.can_read_conversation(conversation_id,team_id)) with check(conversation_id is null or kappy_private.can_read_conversation(conversation_id,team_id));
