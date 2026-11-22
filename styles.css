@@ -236,8 +236,8 @@
 .kappy-compact-calendar .care-day{min-height:clamp(32px,5.8vh,43px);border-radius:8px;touch-action:manipulation;user-select:none;-webkit-user-select:none}
 .kappy-compact-calendar .care-day.kappy-range-day{background:#a9d8bc;color:#153b2b;border-radius:0}
 .kappy-compact-calendar .care-day.kappy-range-start,.kappy-compact-calendar .care-day.kappy-range-end{background:#285746;color:white;border-radius:12px}
-.kappy-compact-calendar .care-day.kappy-range-armed{animation:kappy-range-pulse 1.1s ease-in-out infinite}
-@keyframes kappy-range-pulse{50%{box-shadow:0 0 0 5px #79c99a80;transform:scale(1.05)}}
+ .kappy-compact-calendar .care-day.kappy-range-armed{animation:kappy-compact-pulse 1.1s ease-in-out infinite}
+@keyframes kappy-compact-pulse{50%{box-shadow:0 0 0 5px #79c99a80}}
 .kappy-compact-calendar .care-day .care-event-dot{width:5px;height:5px}
 .kappy-compact-calendar .care-day-detail{margin-top:6px;padding:7px 10px}
 .kappy-calendar-summary{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:13px}
