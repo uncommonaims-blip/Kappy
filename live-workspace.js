@@ -194,7 +194,7 @@ export function mountLiveWorkspace(client, host, user) {
       const loadChat=async()=>{
         const request=++chatRequest;const topic=channel;
         try{
-          const records=await call(client.from('kappy_messages').select('id,author_id,body,created_at').eq('team_id',teamId).match(privateId(topic)?{conversation_id:privateId(topic)}:{channel:topic}).filter('conversation_id',privateId(topic)?'not.is':'is',null).order('created_at',{ascending:false}).limit(100));
+          const records=await call(client.from('kappy_messages').select('id,author_id,body,created_at').eq('team_id',teamId).match(privateId(topic)?{conversation_id:privateId(topic)}:{channel:topic}).filter('conversation_id',privateId(topic)?'eq':'is',privateId(topic)||null).order('created_at',{ascending:false}).limit(100));
           if(request!==chatRequest||topic!==channel)return;
           renderChat(records.reverse());chatError.textContent='';
         }catch(err){if(request===chatRequest)chatError.textContent='Messages could not load. Please try again.'}
