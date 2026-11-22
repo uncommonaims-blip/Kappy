@@ -1,0 +1,1 @@
+-- Already applied to the Kappy Supabase project on 2026-11-22.\n-- Realtime uses the existing kappy_messages RLS select and insert policies.\nalter publication supabase_realtime add table public.kappy_messages;\n
