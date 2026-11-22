@@ -225,3 +225,13 @@
 #live-workspace .kappy-activity-status{min-height:1.3em;margin-top:12px}
 #live-workspace .kappy-activity-log{border-top:1px solid #dbe8dc;margin-top:14px;padding-top:12px}
 #live-workspace .kappy-activity-log p{margin:6px 0;font-size:13px}
+
+/* Optional SMS code login */
+.kappy-phone-auth{display:flex;flex-direction:column;gap:8px;width:min(100%,360px);margin:12px auto;text-align:left}
+.kappy-phone-auth label{font-weight:650}
+.kappy-phone-auth input{box-sizing:border-box;width:100%;min-height:48px;border-radius:12px;padding:10px 12px;border:1px solid #aebcb2;font-size:16px}
+.kappy-phone-auth button{min-height:46px}
+.kappy-phone-auth .muted{font-size:12px;margin:0}
+.kappy-phone-auth #kappy-verify-panel{display:flex;flex-direction:column;gap:8px}
+.kappy-phone-auth #kappy-verify-panel[hidden],.kappy-phone-auth[hidden]{display:none!important}
+.kappy-phone-auth #kappy-phone-status{font-size:13px;min-height:1em;margin:0}
