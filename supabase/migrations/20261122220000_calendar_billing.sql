@@ -1,0 +1,16 @@
+create table public.kappy_billing_rates(team_id uuid not null,user_id uuid not null,rate numeric(12,2) not null check(rate>=0),primary key(team_id,user_id),foreign key(team_id,user_id) references public.kappy_members(team_id,user_id) on delete cascade);
+create table public.kappy_billing_statements(team_id uuid not null references public.kappy_teams(id),period_end timestamptz not null, snapshot jsonb not null,approved_at timestamptz not null default now(),approved_by uuid not null references auth.users(id),primary key(team_id,period_end));
+alter table public.kappy_billing_rates enable row level security;
+alter table public.kappy_billing_statements enable row level security;
+revoke all on public.kappy_billing_rates,public.kappy_billing_statements from anon,authenticated;
+grant select,insert,update on public.kappy_billing_rates to authenticated;
+grant select,insert on public.kappy_billing_statements to authenticated;
+create policy billing_rates_admin on public.kappy_billing_rates for all to authenticated using(kappy_private.is_admin(team_id)) with check(kappy_private.is_admin(team_id));
+create policy billing_statements_read on public.kappy_billing_statements for select to authenticated using(kappy_private.is_admin(team_id));
+create policy billing_statements_insert on public.kappy_billing_statements for insert to authenticated with check(kappy_private.is_admin(team_id) and approved_by=auth.uid() and period_end<=now());
+create table public.kappy_shift_amendments(shift_id uuid primary key references public.kappy_calendar_entries(id) on delete cascade,team_id uuid not null references public.kappy_teams(id),worker_id uuid not null references auth.users(id),actual_start timestamptz not null,actual_end timestamptz not null,reason text not null,check(actual_end>=actual_start));
+alter table public.kappy_shift_amendments enable row level security;
+revoke all on public.kappy_shift_amendments from anon,authenticated;
+grant select,insert,update on public.kappy_shift_amendments to authenticated;
+create policy amendments_read on public.kappy_shift_amendments for select to authenticated using(kappy_private.is_admin(team_id) or (worker_id=auth.uid() and kappy_private.is_member(team_id)));
+create policy amendments_write on public.kappy_shift_amendments for all to authenticated using(kappy_private.is_admin(team_id) or worker_id=auth.uid()) with check(kappy_private.is_member(team_id) and (kappy_private.is_admin(team_id) or worker_id=auth.uid()) and exists(select 1 from public.kappy_calendar_entries c where c.id=shift_id and c.team_id=kappy_shift_amendments.team_id and c.assigned_to=worker_id and c.kind='shift' and c.status='approved'));
