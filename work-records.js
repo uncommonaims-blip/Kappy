@@ -1,3 +1,4 @@
+import {mountCalendarBilling} from './calendar-billing.js';
 import {mountMonthlyStatements} from './monthly-statements.js';
 import {mountPayments} from './payments.js';
 // Work Records beta. Never trust UI-only permissions: Supabase RLS is authoritative.
@@ -20,6 +21,7 @@ export async function mountWorkRecords(client,host,user,teamId){
  ]);
  const role=members.find(m=>m.user_id===user.id)?.role;
  const manager=role==='admin'||role==='payroll_manager';
+ await mountCalendarBilling(client,section,user,teamId,members,role==='admin');
  const money=n=>'$'+n.toFixed(2);
  section.append(el('p','Week of '+weekStart+' · 168 coverage hours available'));
  const rows=manager?members:members.filter(m=>m.user_id===user.id);
@@ -35,8 +37,8 @@ export async function mountWorkRecords(client,host,user,teamId){
  if(coverage>168)section.append(el('p','Review: coverage exceeds 168 hours. Check overlapping shifts.'));
  section.append(el('p','Additional labor: '+extra.toFixed(2)+' hours · Labor '+money(labor)+' · Reimbursements '+money(reimb)+' · Grand total '+money(labor+reimb)));
  if(role!=='payroll_manager'){
- form('Work hours',[['work_date','Work date','date',true],['hours','Hours','number',true],['hourly_rate','Hourly rate ($)','number',true],['notes','Notes','text',false]],async v=>query(client.from('kappy_work_entries').insert({...v,hours:Number(v.hours),hourly_rate:Number(v.hourly_rate),category:document.getElementById('kappy-work-type')?.value||'coverage',team_id:teamId,worker_id:user.id})));
- const type=el('select');type.id='kappy-work-type';type.setAttribute('aria-label','Work type');for(const t of ['coverage','groceries','errand','other']){const o=el('option',t);o.value=t;type.append(o)}section.querySelector('form').prepend(type);
+ form('Additional work hours',[['work_date','Work date','date',true],['hours','Hours','number',true],['hourly_rate','Hourly rate ($)','number',true],['notes','Notes','text',false]],async v=>query(client.from('kappy_work_entries').insert({...v,hours:Number(v.hours),hourly_rate:Number(v.hourly_rate),category:document.getElementById('kappy-work-type')?.value||'coverage',team_id:teamId,worker_id:user.id})));
+ const type=el('select');type.id='kappy-work-type';type.setAttribute('aria-label','Work type');for(const t of ['groceries','errand','other']){const o=el('option',t);o.value=t;type.append(o)}section.querySelector('form').prepend(type);
  form('Expense',[['spent_on','Date','date',true],['amount','Amount ($)','number',true],['description','Description','text',true]],async v=>{
  const file=document.getElementById('kappy-receipt-file')?.files?.[0];
  let receipt_path=null;
@@ -52,7 +54,7 @@ export async function mountWorkRecords(client,host,user,teamId){
 });
  const expenseType=el('select');expenseType.id='kappy-expense-type';expenseType.setAttribute('aria-label','Expense type');for(const t of ['groceries','supplies','other']){const o=el('option',t);o.value=t;expenseType.append(o)}section.querySelectorAll('form')[1].prepend(expenseType);
  const uploadLabel=el('label','Receipt photo (optional, JPEG/PNG/WebP, max 5 MB) '),upload=el('input');upload.type='file';upload.accept='image/jpeg,image/png,image/webp';upload.id='kappy-receipt-file';upload.setAttribute('aria-label','Receipt photo');uploadLabel.append(upload);section.querySelectorAll('form')[1].insertBefore(uploadLabel,section.querySelectorAll('form')[1].lastChild);
- const submit=el('button',submissions.some(x=>x.worker_id===user.id)?'Week submitted':'Submit this week');submit.disabled=submissions.some(x=>x.worker_id===user.id);submit.addEventListener('click',async()=>{try{await query(client.from('kappy_weekly_submissions').insert({team_id:teamId,worker_id:user.id,week_start:weekStart}));await mountWorkRecords(client,host,user,teamId)}catch(err){status.textContent=err.message}});section.append(submit);
+ const submit=el('button',submissions.some(x=>x.worker_id===user.id)?'Week submitted':'Submit this week');submit.disabled=submissions.some(x=>x.worker_id===user.id);submit.addEventListener('click',async()=>{try{await query(client.from('kappy_weekly_submissions').insert({team_id:teamId,worker_id:user.id,week_start:weekStart}));await mountWorkRecords(client,host,user,teamId)}catch(err){status.textContent=err.message}});// Weekly submissions are no longer required for calendar billing.
  }
  await mountPayments(client,section,user,teamId,weekStart,members,submissions,manager,()=>mountWorkRecords(client,host,user,teamId));
  await mountMonthlyStatements(client,section,user,teamId,members,manager);
@@ -60,6 +62,6 @@ export async function mountWorkRecords(client,host,user,teamId){
  for(const e of expenses){const line=el('p',e.spent_on+' · '+e.category+' · '+money(Number(e.amount))+' · '+(e.description||'No description')+' ');
  if(e.receipt_path){const btn=el('button','View receipt');btn.type='button';btn.addEventListener('click',async()=>{btn.disabled=true;try{const {data,error}=await client.storage.from('kappy-receipts').createSignedUrl(e.receipt_path,60);if(error)throw error;window.open(data.signedUrl,'_blank','noopener,noreferrer')}catch(err){status.textContent='Receipt unavailable: '+err.message}finally{btn.disabled=false}});line.append(btn)}archive.append(line)}
  if(!expenses.length)archive.append(el('p','No expenses recorded for this week'));section.append(archive);
- section.append(el('p','Sunday noon notifications are not enabled yet. Use synthetic test receipts only until beta security review is complete.'));
+ section.append(el('p','Calendar billing is reviewed by the administrator. Legacy work records below are not the approved billing statement.'));
  }catch(err){status.textContent='Work records unavailable: '+err.message}
 }
